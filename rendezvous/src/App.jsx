@@ -5,7 +5,6 @@ import LoginPage from "./pages/user/LoginPage";
 import AdminPage from "./pages/admin/AdminPage";
 import MyPage from "./pages/myPage/MyPage";
 
-
 function App() {
   return (
     <Routes>

@@ -1,12 +1,8 @@
 import React from "react";
-import MyPageSidebar from "../../components/myPage/MyPageSidebar";
+import MyPageComponent from "../../components/myPage/MyPageComponent";
 
 const MyPage = () => {
-    return (
-    <div>
-      <MyPageSidebar />
-    </div>
-  );
+  return <MyPageComponent />;
 };
 
 export default MyPage;
