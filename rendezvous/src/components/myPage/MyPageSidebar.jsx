@@ -27,13 +27,31 @@ const MyPageSidebar = () => {
   };
 
   return (
-    <aside className="w-[360px] h-screen bg-[#FDFCFB] border-r border-gray-200 flex flex-col font-sans sticky top-0 left-0 overflow-y-auto custom-scrollbar">
-      
+    <aside className="w-[360px] h-screen bg-[#FDFCFB] border-r border-gray-200 flex flex-col font-sans sticky top-0 left-0">
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 12px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: #d1d5db;
+          border-radius: 10px;
+          background-clip: padding-box;
+          border:3px solid transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background-color: #c9c9c9;
+        }
+      `}</style>
       {/* 1. 헤더 & 탭 */}
       <div className="p-6 pb-0">
-        <h1 className="text-[#EE4B6F] font-bold text-2xl text-center mb-6 tracking-tight cursor-default">
-          Rendezvous
-        </h1>
+        <img 
+          src="/logo.png" 
+          alt="Rendezvous" 
+          className="h-40 mx-auto mb-6 object-contain cursor-pointer" 
+        />
         
         <div className="flex justify-between bg-white border border-gray-200 rounded-[20px] p-1 shadow-sm mb-6">
 
@@ -54,7 +72,7 @@ const MyPageSidebar = () => {
         </div>
       </div>
 
-      <div className="flex-1 px-6 pb-6 overflow-y-auto">
+      <div className="flex-1 px-6 pb-6 overflow-y-auto custom-scrollbar">
         
         {/* 2. 소셜 디스커버리 범위 설정 */}
         <div className="mb-8">

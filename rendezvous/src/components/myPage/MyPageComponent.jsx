@@ -1,7 +1,7 @@
 import React from "react";
 
 const MyPageComponent = () => {
-  return <div>MyPageComponent</div>;
+  return <div><MyPageSidebar /></div>;
 };
 
 export default MyPageComponent;
