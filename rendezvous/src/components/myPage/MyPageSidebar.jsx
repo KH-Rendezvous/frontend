@@ -47,9 +47,11 @@ const MyPageSidebar = () => {
       `}</style>
       {/* 1. 헤더 & 탭 */}
       <div className="p-6 pb-0">
-        <h1 className="text-[#EE4B6F] font-bold text-2xl text-center mb-6 tracking-tight cursor-default">
-          Rendezvous
-        </h1>
+        <img 
+          src="/logo.png" 
+          alt="Rendezvous" 
+          className="h-40 mx-auto mb-6 object-contain cursor-pointer" 
+        />
         
         <div className="flex justify-between bg-white border border-gray-200 rounded-[20px] p-1 shadow-sm mb-6">
 
