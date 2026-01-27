@@ -1,20 +1,27 @@
 import React, { useState } from "react";
-// 1. 라이브러리랑 스타일 import
+import { useNavigate } from "react-router-dom";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 import BlockModal from "../modals/BlockModal";
 import GenderModal from "../modals/GenderModal";
+import QnaModal from "../modals/QnAModal";
+import DeleteAccountModal from "../modals/DeleteAccountModal";
 
-// 2. 컴포넌트 이름 파일명에 맞게 변경
 const MyPageSidebar = () => {
   const [distance, setDistance] = useState(10);
-  // 3. 나이 범위는 숫자 하나가 아니라 [최소, 최대] 배열이어야 함
+
   const [ageRange, setAgeRange] = useState([19, 39]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [isQnaModalOpen, setIsQnaModalOpen] = useState(false);
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
   const [isGenderModalOpen, setIsGenderModalOpen] = useState(false);
-  const [gender, setGender] = useState("여성"); // 기본값 '여성'
+  const [gender, setGender] = useState("여성");
+
+  const navigate = useNavigate();
 
   // 거리 바뀔 때 실행되는 함수
   const handleDistanceChange = (value) => {
@@ -50,11 +57,15 @@ const MyPageSidebar = () => {
         <img
           src="/logo.png"
           alt="Rendezvous"
-          className="h-40 mx-auto mb-6 object-contain cursor-pointer"
+          onClick={() => navigate("/")}
+          className="h-40 mx-auto mb-6 object-contain cursor-pointer transition-transform hover:scale-105"
         />
 
         <div className="flex justify-between bg-white border border-gray-200 rounded-[20px] p-1 shadow-sm mb-6">
-          <button className="flex-1 py-2.5 text-sm font-bold text-black hover:bg-gray-50 hover:text-black rounded-[15px] transition-all">
+          <button
+            onClick={() => navigate("/discovery")}
+            className="flex-1 py-2.5 text-sm font-bold text-black hover:bg-gray-50 hover:text-black rounded-[15px] transition-all"
+          >
             탐색
           </button>
 
@@ -218,13 +229,19 @@ const MyPageSidebar = () => {
 
         {/* 5. 하단 버튼들 */}
         <div className="space-y-3">
-          <button className="w-full py-3.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 bg-white shadow-sm hover:shadow-md hover:bg-gray-50 transition-all">
+          <button
+            onClick={() => setIsQnaModalOpen(true)}
+            className="w-full py-3.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 bg-white shadow-sm hover:shadow-md hover:bg-gray-50 transition-all"
+          >
             QnA
           </button>
           <button className="w-full py-3.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 bg-white shadow-sm hover:shadow-md hover:bg-gray-50 transition-all">
             로그아웃
           </button>
-          <button className="w-full py-3.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 bg-white shadow-sm hover:shadow-md hover:bg-gray-50 transition-all">
+          <button
+            onClick={() => setIsDeleteModalOpen(true)}
+            className="w-full py-3.5 border border-gray-200 rounded-xl text-sm font-bold text-red-500 bg-white shadow-sm hover:shadow-md hover:bg-gray-50 transition-all"
+          >
             회원탈퇴
           </button>
         </div>
@@ -236,6 +253,16 @@ const MyPageSidebar = () => {
         onClose={() => setIsGenderModalOpen(false)}
         currentGender={gender}
         onSave={(newGender) => setGender(newGender)}
+      />
+
+      <QnaModal
+        isOpen={isQnaModalOpen}
+        onClose={() => setIsQnaModalOpen(false)}
+      />
+
+      <DeleteAccountModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
       />
     </aside>
   );
