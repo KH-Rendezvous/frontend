@@ -2,8 +2,8 @@ import React, { useState } from "react";
 // 1. 라이브러리랑 스타일 import
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
-import BlockModal from "./BlockModal";
-import GenderModal from "./GenderModal";
+import BlockModal from "../modals/BlockModal";
+import GenderModal from "../modals/GenderModal";
 
 // 2. 컴포넌트 이름 파일명에 맞게 변경
 const MyPageSidebar = () => {
