@@ -1,6 +1,6 @@
 import React from "react";
-import MyPageSidebar from "./MyPageSidebar";
-import MyPageMain from "./MyPageMain";
+import MyPageSidebar from "./components/MyPageSidebar";
+import MyPageMain from "./components/MyPageMain";
 
 const MyPageComponent = () => {
   return (

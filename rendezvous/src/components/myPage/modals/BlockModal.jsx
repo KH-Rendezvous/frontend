@@ -7,7 +7,7 @@ const BlockModal = ({ isOpen, onClose }) => {
   return (
     // 1. 배경 (검은색 반투명) - 클릭하면 닫히게 처리
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       {/* 2. 모달 창 본문 (클릭해도 안 닫히게 e.stopPropagation) */}
