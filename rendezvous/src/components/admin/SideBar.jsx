@@ -3,26 +3,39 @@ import { NavLink } from "react-router-dom";
 
 const SideBar = ({ getNavLinkStyle }) => {
   return (
-    <div>
-      {" "}
-      <div className="bg-[#FDFCFB] h-screen  flex flex-col items-center px-10">
-        <img src="/logo.png" alt="logo" className="w-[142px]" />
-        <section className="flex flex-col items-center gap-10">
+    // 전체 사이드바 컨테이너
+    <aside className="bg-white min-h-screen w-[420px] min-w-[420px] flex flex-col items-center border-r border-gray-100 shadow-[4px_0_24px_rgba(0,0,0,0.03)] sticky top-0 z-50">
+      {/* 1. 로고 영역 */}
+      <div className="w-full h-[200px] flex items-center justify-center border-b border-gray-50 mb-10">
+        <img
+          src="/logo.png"
+          alt="Rendezvous Logo"
+          className="w-[160px] object-contain "
+        />
+      </div>
+
+      {/* 2. 네비게이션 메뉴 영역 */}
+      <nav className="flex flex-col gap-8 w-full items-center px-6 flex-1">
+        {/* 메뉴 그룹 */}
+        <div className="flex flex-col gap-6 w-full items-center">
           <NavLink to="/admin/userManagement" className={getNavLinkStyle}>
             회원 관리
           </NavLink>
+
           <NavLink to="/admin/qna" className={getNavLinkStyle}>
             QnA
           </NavLink>
+
           <NavLink to="/admin/report" className={getNavLinkStyle}>
             신고 내역
           </NavLink>
+
           <NavLink to="/admin/support" className={getNavLinkStyle}>
             고객 지원
           </NavLink>
-        </section>
-      </div>
-    </div>
+        </div>
+      </nav>
+    </aside>
   );
 };
 

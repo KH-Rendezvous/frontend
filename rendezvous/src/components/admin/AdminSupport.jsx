@@ -6,7 +6,7 @@ const AdminSupport = () => {
   // 더미 데이터 생성
   const allUsers = Array.from({ length: 200 }, (_, i) => ({
     id: i + 1,
-    email: `user${i + 1}@example.com`,
+    email: "jaehun4086@naver.com",
     nickname: `닉네임${i + 1}`,
     date: "2025-12-07",
     status: i % 3 === 0 ? "미완료" : "완료",
@@ -48,20 +48,17 @@ const AdminSupport = () => {
   // 모달 및 답변 관련 state
   const [modal, setModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState({});
-  // 답변 내용을 관리할 state 추가
-  const [answerContent, setAnswerContent] = useState({
-    title: "",
-    content: "",
-  });
 
   const modalHandler = (user) => {
     setSelectedUser(user);
     setModal(true);
     setAnswerModal(false); // 상세 보기 모드로 초기화
     // 답변 모달 초기화 (제목에 RE: 붙이기 등)
-    setAnswerContent({
+    setContent({
       title: `RE: 문의하신 내용에 대한 답변입니다.`,
       content: "",
+      email: selectedUser.email,
+      memberNo: "",
     });
   };
 
@@ -69,25 +66,46 @@ const AdminSupport = () => {
     setAnswerModal(true);
   };
 
-  const answerHandler = () => {
-    // 답변 전송 로직 (API 호출 등)
-    alert("답변이 전송되었습니다.");
-    setAnswerModal(false);
-    setModal(false);
-  };
-
   // 답변 입력 핸들러
   const onAnswerChangeHandler = (e) => {
     const { name, value } = e.target;
-    setAnswerContent((prev) => ({
+    setContent((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
+  const [emailStatus, setEmailStatus] = useState(false);
+  const [content, setContent] = useState({
+    title: "",
+    content: "",
+    email: selectedUser.email,
+    memberNo: 1,
+  });
+  const submitAnswerHandler = async () => {
+    setEmailStatus(true);
+    setModal(false);
+    try {
+      const resp = await axiosApi.post("/email/qna", {
+        title: content.title,
+        content: content.content,
+        email: selectedUser.email,
+        memberNo: content.memberNo,
+      });
 
+      if (resp.status === 200) {
+        alert("답변이 완료되었습니다.");
+        setEmailStatus(false);
+      }
+    } catch (error) {
+      console.log(error);
+      alert("답변 실패...");
+      setEmailStatus(false);
+    }
+  };
   return (
     <div className="w-full h-full px-10 py-10 flex flex-col justify-center items-center">
       {/* ---------------- 모달 영역 시작 ---------------- */}
+      {emailStatus ? <EmailStatus /> : null}
       {modal && (
         <div className="fixed inset-0 z-50 flex justify-center items-center">
           {/* 배경 (블러 처리 및 어둡게) */}
@@ -120,7 +138,7 @@ const AdminSupport = () => {
                       name="title"
                       className="w-full border border-gray-300 rounded-lg px-4 py-3 outline-none focus:border-[#EE4B6F] focus:ring-2 focus:ring-[#EE4B6F]/20 transition-all text-gray-700"
                       placeholder="답변 제목을 입력해주세요."
-                      value={answerContent.title}
+                      value={content.title}
                       onChange={onAnswerChangeHandler}
                     />
                   </div>
@@ -134,7 +152,7 @@ const AdminSupport = () => {
                       name="content"
                       className="w-full h-[300px] border border-gray-300 rounded-lg px-4 py-3 outline-none focus:border-[#EE4B6F] focus:ring-2 focus:ring-[#EE4B6F]/20 transition-all resize-none text-gray-700"
                       placeholder="답변 내용을 자세히 입력해주세요."
-                      value={answerContent.content}
+                      value={content.content}
                       onChange={onAnswerChangeHandler}
                     ></textarea>
                   </div>
@@ -174,7 +192,7 @@ const AdminSupport = () => {
                 <>
                   <button
                     className="bg-[#EE4B6F] hover:bg-[#d63a5c] text-white px-8 py-3 rounded-xl font-bold shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5"
-                    onClick={answerHandler}
+                    onClick={submitAnswerHandler}
                   >
                     전송하기
                   </button>
