@@ -1,7 +1,371 @@
-import React from "react";
+import React, { useState } from "react";
+import { axiosApi } from "../../api/axiosAPI"; // 실제 API 호출을 위해 필요하다면 import 유지
+import EmailStatus from "./EmailStatus"; // EmailStatus 컴포넌트 import (없다면 주석 처리)
 
 const AdminSupport = () => {
-  return <div>고객지원</div>;
+  // 더미 데이터 생성
+  const allUsers = Array.from({ length: 200 }, (_, i) => ({
+    id: i + 1,
+    email: `user${i + 1}@example.com`,
+    nickname: `닉네임${i + 1}`,
+    date: "2025-12-07",
+    status: i % 3 === 0 ? "미완료" : "완료",
+    content: "매칭은 어떻게 이루어지나요? 상세한 답변 부탁드립니다.",
+  }));
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectType, setSelectType] = useState("전체 회원");
+  const [answerModal, setAnswerModal] = useState(false);
+  const itemsPerPage = 10;
+  const pageGroupSize = 10;
+
+  // 필터링 로직
+  const filteredUser = allUsers.filter((user) => {
+    if (selectType === "전체 회원") return true;
+    if (selectType === "답변 미완료") return user.status === "미완료";
+    if (selectType === "답변 완료") return user.status === "완료";
+    return true;
+  });
+
+  // 페이지네이션 로직
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredUser.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredUser.length / itemsPerPage);
+  const currentGroup = Math.ceil(currentPage / pageGroupSize);
+  const startPage = (currentGroup - 1) * pageGroupSize + 1;
+  const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
+
+  const pageNumbers = [];
+  for (let i = startPage; i <= endPage; i++) {
+    pageNumbers.push(i);
+  }
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
+  // 모달 및 답변 관련 state
+  const [modal, setModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState({});
+  // 답변 내용을 관리할 state 추가
+  const [answerContent, setAnswerContent] = useState({
+    title: "",
+    content: "",
+  });
+
+  const modalHandler = (user) => {
+    setSelectedUser(user);
+    setModal(true);
+    setAnswerModal(false); // 상세 보기 모드로 초기화
+    // 답변 모달 초기화 (제목에 RE: 붙이기 등)
+    setAnswerContent({
+      title: `RE: 문의하신 내용에 대한 답변입니다.`,
+      content: "",
+    });
+  };
+
+  const answerModalHandler = () => {
+    setAnswerModal(true);
+  };
+
+  const answerHandler = () => {
+    // 답변 전송 로직 (API 호출 등)
+    alert("답변이 전송되었습니다.");
+    setAnswerModal(false);
+    setModal(false);
+  };
+
+  // 답변 입력 핸들러
+  const onAnswerChangeHandler = (e) => {
+    const { name, value } = e.target;
+    setAnswerContent((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  return (
+    <div className="w-full h-full px-10 py-10 flex flex-col justify-center items-center">
+      {/* ---------------- 모달 영역 시작 ---------------- */}
+      {modal && (
+        <div className="fixed inset-0 z-50 flex justify-center items-center">
+          {/* 배경 (블러 처리 및 어둡게) */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setModal(false)}
+          ></div>
+
+          {/* 모달 박스 */}
+          <div className="relative bg-white w-[650px] max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fadeInUp">
+            {/* 상단 헤더 */}
+            <div className="bg-[#EE4B6F] p-6">
+              <h2 className="text-2xl font-bold text-white text-center">
+                {answerModal ? "답변 작성하기" : "고객 문의 상세"}
+              </h2>
+            </div>
+
+            {/* 컨텐츠 영역 (스크롤 가능) */}
+            <div className="p-8 overflow-y-auto flex-1 flex flex-col gap-6">
+              {answerModal ? (
+                /* 답변 입력 모드 */
+                <div className="flex flex-col gap-6">
+                  {/* 제목 입력 */}
+                  <div className="flex flex-col gap-2">
+                    <label className="font-bold text-gray-700 text-sm">
+                      제목
+                    </label>
+                    <input
+                      type="text"
+                      name="title"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 outline-none focus:border-[#EE4B6F] focus:ring-2 focus:ring-[#EE4B6F]/20 transition-all text-gray-700"
+                      placeholder="답변 제목을 입력해주세요."
+                      value={answerContent.title}
+                      onChange={onAnswerChangeHandler}
+                    />
+                  </div>
+
+                  {/* 내용 입력 */}
+                  <div className="flex flex-col gap-2">
+                    <label className="font-bold text-gray-700 text-sm">
+                      내용
+                    </label>
+                    <textarea
+                      name="content"
+                      className="w-full h-[300px] border border-gray-300 rounded-lg px-4 py-3 outline-none focus:border-[#EE4B6F] focus:ring-2 focus:ring-[#EE4B6F]/20 transition-all resize-none text-gray-700"
+                      placeholder="답변 내용을 자세히 입력해주세요."
+                      value={answerContent.content}
+                      onChange={onAnswerChangeHandler}
+                    ></textarea>
+                  </div>
+                </div>
+              ) : (
+                /* 상세 보기 모드 */
+                <div className="flex flex-col gap-6">
+                  {/* 문의 정보 카드 */}
+                  <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 flex flex-col gap-4">
+                    <div className="flex justify-between items-center border-b border-gray-200 pb-3">
+                      <div className="flex gap-2 items-center">
+                        <span className="bg-[#EE4B6F] text-white text-xs px-2 py-1 rounded-full">
+                          문의
+                        </span>
+                        <span className="font-bold text-gray-800 text-lg">
+                          {selectedUser.nickname}님의 문의
+                        </span>
+                      </div>
+                      <span className="text-gray-400 text-sm">
+                        {selectedUser.date}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <div className="bg-white p-4 rounded-lg border border-gray-200 text-gray-700 min-h-[200px] whitespace-pre-wrap leading-relaxed">
+                        {selectedUser.content}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 하단 버튼 영역 */}
+            <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-center gap-4">
+              {answerModal ? (
+                <>
+                  <button
+                    className="bg-[#EE4B6F] hover:bg-[#d63a5c] text-white px-8 py-3 rounded-xl font-bold shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5"
+                    onClick={answerHandler}
+                  >
+                    전송하기
+                  </button>
+                  <button
+                    className="bg-white border border-gray-300 hover:bg-gray-100 text-gray-600 px-8 py-3 rounded-xl font-bold transition-all"
+                    onClick={() => setAnswerModal(false)}
+                  >
+                    취소
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className="bg-[#EE4B6F] hover:bg-[#d63a5c] text-white px-8 py-3 rounded-xl font-bold shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5"
+                    onClick={answerModalHandler}
+                  >
+                    답변하기
+                  </button>
+                  <button
+                    className="bg-white border border-gray-300 hover:bg-gray-100 text-gray-600 px-8 py-3 rounded-xl font-bold transition-all"
+                    onClick={() => setModal(false)}
+                  >
+                    닫기
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ---------------- 모달 영역 끝 ---------------- */}
+
+      <div className="w-full max-w-[1000px]">
+        {/* 상단 필터 select */}
+        <div className="mb-4 flex justify-end">
+          <select
+            className="border border-gray-300 rounded-lg px-4 py-2 text-sm outline-none shadow-sm focus:border-[#EE4B6F] transition-colors"
+            onChange={(e) => {
+              setSelectType(e.target.value);
+              setCurrentPage(1);
+            }}
+          >
+            <option>전체 회원</option>
+            <option>답변 미완료</option>
+            <option>답변 완료</option>
+          </select>
+        </div>
+
+        {/* 테이블 섹션 */}
+        <div className="w-full overflow-x-auto mb-8 bg-white shadow-sm rounded-lg border border-gray-100">
+          <table className="w-full table-fixed text-center border-collapse">
+            <thead className="bg-[#fff0f3] text-gray-700 h-12 border-b-2 border-[#EE4B6F]">
+              <tr>
+                <th className="w-[10%] py-3 font-bold">번호</th>
+                <th className="w-[30%] py-3 font-bold">문의 내용 (요약)</th>
+                <th className="w-[20%] py-3 font-bold">닉네임</th>
+                <th className="w-[20%] py-3 font-bold">가입일</th>
+                <th className="w-[10%] py-3 font-bold">상태</th>
+                <th className="w-[10%] py-3 font-bold">관리</th>
+              </tr>
+            </thead>
+
+            <tbody className="text-sm text-gray-600">
+              {currentItems.length > 0 ? (
+                currentItems.map((user) => (
+                  <tr
+                    key={user.id}
+                    className="border-b border-gray-100 hover:bg-gray-50 h-12 transition-colors"
+                  >
+                    <td className="truncate px-2">{user.id}</td>
+                    <td className="truncate px-2 text-left pl-6">
+                      {user.content}
+                    </td>
+                    <td className="truncate px-2">{user.nickname}</td>
+                    <td className="truncate px-2">{user.date}</td>
+                    <td className="truncate px-2 font-medium">
+                      {user.status === "미완료" ? (
+                        <span className="bg-gray-200 text-gray-600 px-2 py-1 rounded text-xs">
+                          미완료
+                        </span>
+                      ) : (
+                        <span className="bg-green-100 text-green-600 px-2 py-1 rounded text-xs font-bold">
+                          완료
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-2">
+                      <button
+                        className={`px-3 py-1 rounded text-xs font-bold transition-all ${
+                          user.status === "미완료"
+                            ? "bg-[#EE4B6F] hover:bg-[#d63a5c] text-white shadow-sm"
+                            : "bg-gray-300 text-white cursor-not-allowed" // 완료된 건은 비활성화 처리 예시 (필요시 변경)
+                        }`}
+                        onClick={() => {
+                          modalHandler(user);
+                        }}
+                        disabled={user.status === "완료"} // 완료된 건은 버튼 비활성화 (선택 사항)
+                      >
+                        답변
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" className="py-10 text-gray-400">
+                    데이터가 없습니다.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* 페이지네이션 UI */}
+        {totalPages > 0 && (
+          <div className="flex flex-col items-center gap-6">
+            <div className="flex items-center gap-2 text-gray-500 text-sm font-medium">
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="p-2 hover:text-[#EE4B6F] disabled:opacity-30 transition-colors"
+              >
+                &lt;&lt;
+              </button>
+
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-2 hover:text-[#EE4B6F] disabled:opacity-30 transition-colors"
+              >
+                &lt;
+              </button>
+
+              <div className="flex gap-1 mx-2">
+                {pageNumbers.map((number) => (
+                  <button
+                    key={number}
+                    onClick={() => handlePageChange(number)}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm transition-all
+                        ${
+                          currentPage === number
+                            ? "bg-[#EE4B6F] text-white font-bold shadow-md"
+                            : "text-gray-600 hover:bg-gray-100"
+                        }`}
+                  >
+                    {number}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
+                disabled={currentPage === totalPages}
+                className="p-2 hover:text-[#EE4B6F] disabled:opacity-30 transition-colors"
+              >
+                &gt;
+              </button>
+
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="p-2 hover:text-[#EE4B6F] disabled:opacity-30 transition-colors"
+              >
+                &gt;&gt;
+              </button>
+            </div>
+
+            {/* 검색창 */}
+            <div className="flex gap-2">
+              <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#EE4B6F]">
+                <option>회원 번호</option>
+                <option>이메일</option>
+                <option>닉네임</option>
+              </select>
+              <input
+                type="text"
+                placeholder="검색어를 입력해주세요"
+                className="border border-gray-300 rounded-lg px-4 py-2 text-sm w-64 outline-none focus:border-[#EE4B6F] transition-colors"
+              />
+              <button className="bg-[#EE4B6F] text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-[#d63a5c] transition-colors shadow-sm">
+                검색
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default AdminSupport;
