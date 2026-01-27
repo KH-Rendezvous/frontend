@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink, Route, Routes } from "react-router-dom";
+import { Navigate, NavLink, Route, Routes } from "react-router-dom";
 import AdminUserManagement from "./AdminUserManagement";
 import AdminQna from "./AdminQna";
 import AdminReport from "./AdminReport";
@@ -21,6 +21,7 @@ const AdminComponent = () => {
       <SideBar getNavLinkStyle={getNavLinkStyle} />
       <section className="w-full">
         <Routes>
+          <Route path="/" element={<Navigate to="userManagement" replace />} />
           <Route path="userManagement" element={<AdminUserManagement />} />
           <Route path="qna" element={<AdminQna />} />
           <Route path="report" element={<AdminReport />} />
