@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+// ▼ 경로가 맞는지 꼭 확인하세요! (보통 components 폴더 안에 있음)
 import QnaModal from "../myPage/modals/QnAModal";
 
 const DiscoverySidebar = ({
@@ -10,36 +11,43 @@ const DiscoverySidebar = ({
 }) => {
   const [qnaStatus, setQnaStatus] = useState(false);
   const navigate = useNavigate();
+
+  // 메뉴 설정
   const supportMenus = [
     { label: "AI 매니저", path: "/ai-manager" },
     { label: "우리 어디서 만날까?", path: "/places" },
-    { label: "QnA", path: null },
+    { label: "QnA", path: null }, // QnA는 모달로 띄움
     { label: "마이페이지", path: "/myPage" },
     { label: "로그아웃", action: "logout" },
   ];
 
+  // 메뉴 클릭 핸들러
   const handleMenuClick = (item) => {
     if (item.action === "logout") {
       alert("로그아웃 되었습니다.");
       navigate("/signIn");
     } else if (item.label === "QnA") {
+      console.log("QnA 모달 열기 시도"); // 디버깅용
       setQnaStatus(true);
     } else if (item.path) {
       navigate(item.path);
     }
   };
+
   return (
     <>
+      {/* 1. QnA 모달 (isOpen={true} 필수 전달) */}
       {qnaStatus && (
         <QnaModal isOpen={true} onClose={() => setQnaStatus(false)} />
       )}
-      <aside className="w-[360px] h-screen bg-white border-r flex flex-col p-6 overflow-y-auto custom-scrollbar">
+
+      {/* 2. 사이드바 영역 */}
+      <aside className="w-[360px] h-screen bg-white border-r flex flex-col p-6 overflow-y-auto custom-scrollbar relative z-10">
         {/* 로고 및 상단 탭 */}
         <div className="flex flex-col items-center mb-8">
-          {/* 로고 영역: 높이를 80px(h-20급)로 키우고 마진을 조정했습니다. */}
           <div
             className="mb-12 px-1 cursor-pointer"
-            onClick={() => (window.location.href = "/")}
+            onClick={() => navigate("/")} // navigate 사용 권장
           >
             <img
               src="/logo.png"
@@ -48,14 +56,17 @@ const DiscoverySidebar = ({
             />
           </div>
           <div className="flex gap-2 w-full">
-            <button className="flex-1 py-2 bg-[#FF4458] text-white rounded-full font-bold text-xs shadow-md">
+            <button
+              onClick={() => navigate("/discovery")}
+              className="flex-1 py-2 bg-[#FF4458] text-white rounded-full font-bold text-xs shadow-md hover:bg-[#e03e4e] transition-colors"
+            >
               탐색
             </button>
-            <button className="flex-1 py-2 text-gray-400 font-bold border rounded-full text-xs bg-white">
+            <button className="flex-1 py-2 text-gray-400 font-bold border rounded-full text-xs bg-white hover:bg-gray-50 transition-colors">
               매칭
             </button>
-            <button className="flex-1 py-2 text-gray-400 font-bold border rounded-full text-xs bg-white relative">
-              채팅{" "}
+            <button className="flex-1 py-2 text-gray-400 font-bold border rounded-full text-xs bg-white relative hover:bg-gray-50 transition-colors">
+              채팅
               <span className="absolute -top-1 -right-1 bg-[#FF4458] text-[9px] text-white w-4 h-4 flex items-center justify-center rounded-full">
                 17
               </span>
@@ -63,9 +74,9 @@ const DiscoverySidebar = ({
           </div>
         </div>
 
-        {/* 1. 내가 선택한 관계 (회원가입 정보 연동) */}
+        {/* 1. 내가 선택한 관계 */}
         <div className="mb-10">
-          <div className="p-8 border-2 border-[#FF4458] rounded-[40px] flex flex-col items-center bg-pink-50/20 shadow-sm transition-all">
+          <div className="p-8 border-2 border-[#FF4458] rounded-[40px] flex flex-col items-center bg-pink-50/20 shadow-sm transition-all hover:shadow-md cursor-pointer">
             {myRelIntent.CODE_NAME ? (
               <>
                 <span className="text-5xl mb-3">{myRelIntent.EMOJI}</span>
@@ -77,9 +88,12 @@ const DiscoverySidebar = ({
                 </span>
               </>
             ) : (
-              <div className="flex flex-col items-center opacity-30 text-center">
+              <div
+                className="flex flex-col items-center opacity-50 text-center hover:opacity-100 transition-opacity"
+                onClick={() => navigate("/myPage")} // 클릭 시 마이페이지로 이동 유도
+              >
                 <span className="text-4xl mb-2">❓</span>
-                <p className="text-[10px] font-bold">
+                <p className="text-[10px] font-bold text-gray-600">
                   프로필 수정에서
                   <br />
                   관계를 설정해주세요
@@ -89,7 +103,7 @@ const DiscoverySidebar = ({
           </div>
         </div>
 
-        {/* 2. 인기 있는 관계 (전체 유저 통계 Top 2) */}
+        {/* 2. 인기 있는 관계 */}
         <div className="mb-10 px-1">
           <h3 className="text-gray-800 text-[11px] font-black mb-1">
             인기 있는 관계
@@ -102,7 +116,7 @@ const DiscoverySidebar = ({
               ? topRelIntents.slice(0, 2).map((item) => (
                   <div
                     key={item.CODE_ID}
-                    className="p-4 border border-gray-100 rounded-2xl flex flex-col items-center bg-white shadow-sm"
+                    className="p-4 border border-gray-100 rounded-2xl flex flex-col items-center bg-white shadow-sm hover:border-[#FF4458] hover:shadow-md transition-all cursor-pointer"
                   >
                     <span className="text-2xl mb-1">{item.EMOJI}</span>
                     <span className="text-[9px] font-black text-gray-700 text-center">
@@ -110,7 +124,8 @@ const DiscoverySidebar = ({
                     </span>
                   </div>
                 ))
-              : Array(2)
+              : // 로딩 스켈레톤 UI
+                Array(2)
                   .fill(0)
                   .map((_, i) => (
                     <div
@@ -121,7 +136,7 @@ const DiscoverySidebar = ({
           </div>
         </div>
 
-        {/* 3. 공통 관심사 (내 설정 5개 + 인기 5개) */}
+        {/* 3. 공통 관심사 */}
         <div className="mb-10 px-1 flex-1">
           <h3 className="text-gray-800 text-[11px] font-black mb-1">
             공통 관심사나 취미
@@ -130,11 +145,11 @@ const DiscoverySidebar = ({
             취향이 통하면 대화도 더 쉽게 통하니까요.
           </p>
           <div className="grid grid-cols-2 gap-3">
-            {/* 내 관심사 (최대 5개) */}
+            {/* 내 관심사 */}
             {myInterests.slice(0, 5).map((item) => (
               <div
                 key={`my-${item.CODE_ID}`}
-                className="p-4 border-2 border-pink-100 rounded-2xl flex flex-col items-center bg-pink-50/20 shadow-sm"
+                className="p-4 border-2 border-pink-100 rounded-2xl flex flex-col items-center bg-pink-50/20 shadow-sm hover:scale-105 transition-transform cursor-default"
               >
                 <span className="text-2xl mb-1">{item.EMOJI}</span>
                 <span className="text-[9px] font-black text-gray-800">
@@ -142,11 +157,11 @@ const DiscoverySidebar = ({
                 </span>
               </div>
             ))}
-            {/* 인기 관심사 (최대 5개) */}
+            {/* 인기 관심사 */}
             {topInterests.slice(0, 5).map((item) => (
               <div
                 key={`top-${item.CODE_ID}`}
-                className="p-4 border border-gray-100 rounded-2xl flex flex-col items-center bg-white"
+                className="p-4 border border-gray-100 rounded-2xl flex flex-col items-center bg-white hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 <span className="text-2xl mb-1">{item.EMOJI}</span>
                 <span className="text-[9px] font-black text-gray-600">
@@ -157,7 +172,7 @@ const DiscoverySidebar = ({
           </div>
         </div>
 
-        {/* 4. 서포터 영역 */}
+        {/* 4. 서포터 영역 (하단 메뉴) */}
         <div className="mt-auto pt-6 border-t border-gray-50 space-y-2">
           <p className="text-[10px] font-bold text-gray-300 mb-2 px-1 uppercase tracking-tighter italic">
             Support for you
@@ -166,7 +181,7 @@ const DiscoverySidebar = ({
             <button
               key={index}
               onClick={() => handleMenuClick(item)}
-              className="w-full py-2.5 text-[11px] font-bold text-gray-500 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 hover:text-[#FF4458] transition-all"
+              className="w-full py-2.5 text-[11px] font-bold text-gray-500 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 hover:text-[#FF4458] hover:border-[#FF4458]/30 transition-all active:scale-95"
             >
               {item.label}
             </button>
