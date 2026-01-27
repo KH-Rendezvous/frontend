@@ -6,7 +6,7 @@ const AdminQna = () => {
   // 더미 데이터 생성
   const allUsers = Array.from({ length: 200 }, (_, i) => ({
     id: i + 1,
-    email: `user${i + 1}@example.com`,
+    email: "jaehun4086@naver.com",
     nickname: `닉네임${i + 1}`,
     date: "2025-12-07",
     status: i % 3 === 0 ? "미완료" : "완료",
@@ -51,6 +51,7 @@ const AdminQna = () => {
   const [content, setContent] = useState({
     title: "",
     content: "",
+    email: selectedUser.email,
     memberNo: 1,
   });
   const [emailStatus, setEmailStatus] = useState(false);
@@ -72,11 +73,6 @@ const AdminQna = () => {
     }));
   };
 
-  const answerHandler = () => {
-    setAnswerModal(false);
-    setModal(false);
-  };
-
   const onChangeHandler = (e) => {
     const { name, value } = e.target;
     setContent((prev) => ({
@@ -92,6 +88,7 @@ const AdminQna = () => {
       const resp = await axiosApi.post("/email/qna", {
         title: content.title,
         content: content.content,
+        email: selectedUser.email,
         memberNo: content.memberNo,
       });
 
@@ -110,30 +107,23 @@ const AdminQna = () => {
     <div className="w-full h-full px-10 py-10 flex flex-col justify-center items-center">
       {emailStatus ? <EmailStatus /> : null}
 
-      {/* ---------------- 모달 영역 시작 ---------------- */}
       {modal && (
         <div className="fixed inset-0 z-50 flex justify-center items-center">
-          {/* 배경 (블러 처리 및 어둡게) */}
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setModal(false)}
           ></div>
 
-          {/* 모달 박스 */}
           <div className="relative bg-white w-[650px] max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fadeInUp">
-            {/* 상단 헤더 */}
             <div className="bg-[#EE4B6F] p-6">
               <h2 className="text-2xl font-bold text-white text-center">
                 {answerModal ? "답변 작성하기" : "QnA 상세 내용"}
               </h2>
             </div>
 
-            {/* 컨텐츠 영역 (스크롤 가능) */}
             <div className="p-8 overflow-y-auto flex-1">
               {answerModal ? (
-                /* 답변 입력 모드 */
                 <div className="flex flex-col gap-6">
-                  {/* 제목 입력 */}
                   <div className="flex flex-col gap-2">
                     <label className="font-bold text-gray-700 text-sm">
                       제목
@@ -148,7 +138,6 @@ const AdminQna = () => {
                     />
                   </div>
 
-                  {/* 내용 입력 */}
                   <div className="flex flex-col gap-2">
                     <label className="font-bold text-gray-700 text-sm">
                       내용
@@ -163,9 +152,7 @@ const AdminQna = () => {
                   </div>
                 </div>
               ) : (
-                /* 상세 보기 모드 */
                 <div className="flex flex-col gap-6">
-                  {/* 질문 정보 카드 */}
                   <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 flex flex-col gap-4">
                     <div className="flex justify-between items-center border-b border-gray-200 pb-3">
                       <div className="flex gap-2 items-center">
@@ -173,7 +160,6 @@ const AdminQna = () => {
                           질문
                         </span>
                         <span className="font-bold text-gray-800 text-lg">
-                          {/* content가 존재할 때만 길이를 체크하도록 수정 */}
                           {selectedUser.content &&
                           selectedUser.content.length > 20
                             ? selectedUser.content.substring(0, 20) + "..."
