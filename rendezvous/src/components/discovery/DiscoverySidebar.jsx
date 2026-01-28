@@ -48,7 +48,13 @@ const DiscoverySidebar = ({
         <div className="flex flex-col items-center mb-8">
           <div
             className="mb-12 px-1 cursor-pointer"
-            onClick={() => navigate("/")} // navigate 사용 권장
+            onClick={() => {
+              if (location.pathname === "/discovery") {
+                window.scrollTo({ top: 0});
+              } else {
+                navigate("/discovery");
+              }
+            }}
           >
             <img
               src="/logo.png"
@@ -115,25 +121,25 @@ const DiscoverySidebar = ({
           <div className="grid grid-cols-2 gap-3">
             {topRelIntents.length > 0
               ? topRelIntents.slice(0, 2).map((item) => (
-                  <div
-                    key={item.CODE_ID}
-                    className="p-4 border border-gray-100 rounded-2xl flex flex-col items-center bg-white shadow-sm hover:border-[#FF4458] hover:shadow-md transition-all cursor-pointer"
-                  >
-                    <span className="text-2xl mb-1">{item.EMOJI}</span>
-                    <span className="text-[9px] font-black text-gray-700 text-center">
-                      {item.CODE_NAME}
-                    </span>
-                  </div>
-                ))
+                <div
+                  key={item.CODE_ID}
+                  className="p-4 border border-gray-100 rounded-2xl flex flex-col items-center bg-white shadow-sm hover:border-[#FF4458] hover:shadow-md transition-all cursor-pointer"
+                >
+                  <span className="text-2xl mb-1">{item.EMOJI}</span>
+                  <span className="text-[9px] font-black text-gray-700 text-center">
+                    {item.CODE_NAME}
+                  </span>
+                </div>
+              ))
               : // 로딩 스켈레톤 UI
-                Array(2)
-                  .fill(0)
-                  .map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-24 bg-gray-50 rounded-2xl animate-pulse"
-                    />
-                  ))}
+              Array(2)
+                .fill(0)
+                .map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-24 bg-gray-50 rounded-2xl animate-pulse"
+                  />
+                ))}
           </div>
         </div>
 
@@ -188,10 +194,9 @@ const DiscoverySidebar = ({
                 key={index}
                 onClick={() => handleMenuClick(item)}
                 className={`w-full py-2.5 text-[11px] font-bold rounded-xl transition-all active:scale-95 border hover:cursor-pointer
-                  ${
-                    isActive
-                      ? "bg-pink-50 text-[#FF4458] border-[#FF4458]"
-                      : "bg-white text-gray-500 border-gray-100 hover:bg-gray-50 hover:text-[#FF4458] hover:border-[#FF4458]/30"
+                  ${isActive
+                    ? "bg-pink-50 text-[#FF4458] border-[#FF4458]"
+                    : "bg-white text-gray-500 border-gray-100 hover:bg-gray-50 hover:text-[#FF4458] hover:border-[#FF4458]/30"
                   }`}
               >
                 {item.label}
