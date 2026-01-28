@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const API_KEY = "AIzaSyDW8YLC5ddz_U7sa_1a0cVSoKLtyGqygqI";
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 export default function AiManager() {
@@ -16,7 +16,7 @@ export default function AiManager() {
   const initChat = async () => {
     try {
       const model = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash",
+        model: "gemini-2.5-flash",
         systemInstruction: `
 당신은 데이팅 앱 '랑데뷰(Rendezvous)'의 AI 연애 코치입니다. 사용자 이름은 '재훈'입니다.
 단순한 챗봇이 아니라, **'실시간 교정'과 '모범 답안 제시'**를 해주는 1:1 과외 선생님입니다.
