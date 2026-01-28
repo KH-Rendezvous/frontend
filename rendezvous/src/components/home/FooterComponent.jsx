@@ -29,7 +29,7 @@ const FooterComponent = () => {
             <ul className="flex flex-col gap-2 text-sm text-gray-500">
               <li>
                 <Link
-                  to="/about"
+                  to="/service-intro"
                   className="hover:text-[#EE4B6F] transition-colors"
                 >
                   서비스 소개
@@ -37,18 +37,10 @@ const FooterComponent = () => {
               </li>
               <li>
                 <Link
-                  to="/guide"
+                  to="/user-guide"
                   className="hover:text-[#EE4B6F] transition-colors"
                 >
                   이용 가이드
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/story"
-                  className="hover:text-[#EE4B6F] transition-colors"
-                >
-                  성공 스토리
                 </Link>
               </li>
             </ul>
@@ -60,14 +52,6 @@ const FooterComponent = () => {
               Support & Policy
             </h3>
             <ul className="flex flex-col gap-2 text-sm text-gray-500">
-              <li>
-                <Link
-                  to="/support"
-                  className="hover:text-[#EE4B6F] transition-colors"
-                >
-                  고객센터
-                </Link>
-              </li>
               <li>
                 <Link
                   to="/terms"

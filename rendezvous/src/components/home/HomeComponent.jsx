@@ -189,6 +189,31 @@ const HomeComponent = () => {
             </Link>
           </div>
         </section>
+        <Link
+          to="/qna?mode=guest"
+          className="fixed bottom-8 right-8 z-50 group flex items-center gap-3"
+        >
+          {/* 호버 시 나타나는 말풍선 */}
+          <div className="bg-white px-4 py-2 rounded-2xl shadow-xl border border-pink-50 text-[#EE4B6F] text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden md:block">
+            로그인이 안 되시나요?
+          </div>
+          <div className="w-16 h-16 bg-[#EE4B6F] text-white rounded-full flex items-center justify-center shadow-[0_8px_25px_rgba(238,75,111,0.4)] hover:scale-110 active:scale-95 transition-all duration-300">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="w-8 h-8"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"
+              />
+            </svg>
+          </div>
+        </Link>
       </main>
       <FooterComponent />
     </div>
