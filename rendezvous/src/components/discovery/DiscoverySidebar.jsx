@@ -177,15 +177,23 @@ const DiscoverySidebar = ({
           <p className="text-[10px] font-bold text-gray-300 mb-2 px-1 uppercase tracking-tighter italic">
             Support for you
           </p>
-          {supportMenus.map((item, index) => (
-            <button
-              key={index}
-              onClick={() => handleMenuClick(item)}
-              className="w-full py-2.5 text-[11px] font-bold text-gray-500 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 hover:text-[#FF4458] hover:border-[#FF4458]/30 transition-all active:scale-95"
-            >
-              {item.label}
-            </button>
-          ))}
+          {supportMenus.map((item, index) => {
+            const isActive = item.path && location.pathname === item.path;
+            return (
+              <button
+                key={index}
+                onClick={() => handleMenuClick(item)}
+                className={`w-full py-2.5 text-[11px] font-bold rounded-xl transition-all active:scale-95 border hover:cursor-pointer
+                  ${
+                    isActive
+                      ? "bg-pink-50 text-[#FF4458] border-[#FF4458]" // ★ 활성화 스타일 (강조)
+                      : "bg-white text-gray-500 border-gray-100 hover:bg-gray-50 hover:text-[#FF4458] hover:border-[#FF4458]/30"
+                  }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </div>
       </aside>
     </>
