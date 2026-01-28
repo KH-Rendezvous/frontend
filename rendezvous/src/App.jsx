@@ -12,6 +12,7 @@ import Places from "./components/support/Places";
 
 // ★ 레이아웃 컴포넌트 임포트 (경로 확인 필수!)
 import MainLayout from "./layouts/MainLayout";
+import PlacesDetail from "./components/support/PlacesDetail";
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
         <Route path="/discovery" element={<DiscoveryPage />} />
         <Route path="/ai-manager" element={<AiManager />} />
         <Route path="/places" element={<Places />} />
+        <Route path="/places/:id" element={<PlacesDetail />} />
       </Route>
     </Routes>
   );

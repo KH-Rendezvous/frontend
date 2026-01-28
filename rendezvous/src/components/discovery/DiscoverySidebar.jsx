@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 // ▼ 경로가 맞는지 꼭 확인하세요! (보통 components 폴더 안에 있음)
 import QnaModal from "../myPage/modals/QnAModal";
 
@@ -11,6 +11,7 @@ const DiscoverySidebar = ({
 }) => {
   const [qnaStatus, setQnaStatus] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // 메뉴 설정
   const supportMenus = [
@@ -178,7 +179,10 @@ const DiscoverySidebar = ({
             Support for you
           </p>
           {supportMenus.map((item, index) => {
-            const isActive = item.path && location.pathname === item.path;
+            const isActive =
+              item.path &&
+              (location.pathname === item.path ||
+                (item.path !== "/" && location.pathname.startsWith(item.path)));
             return (
               <button
                 key={index}
@@ -186,7 +190,7 @@ const DiscoverySidebar = ({
                 className={`w-full py-2.5 text-[11px] font-bold rounded-xl transition-all active:scale-95 border hover:cursor-pointer
                   ${
                     isActive
-                      ? "bg-pink-50 text-[#FF4458] border-[#FF4458]" // ★ 활성화 스타일 (강조)
+                      ? "bg-pink-50 text-[#FF4458] border-[#FF4458]"
                       : "bg-white text-gray-500 border-gray-100 hover:bg-gray-50 hover:text-[#FF4458] hover:border-[#FF4458]/30"
                   }`}
               >
