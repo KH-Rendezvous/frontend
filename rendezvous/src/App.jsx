@@ -13,6 +13,11 @@ import Places from "./components/support/Places";
 // ★ 레이아웃 컴포넌트 임포트 (경로 확인 필수!)
 import MainLayout from "./layouts/MainLayout";
 import PlacesDetail from "./components/support/PlacesDetail";
+import ServiceIntro from "./components/policy/ServiceIntro";
+import UserGuide from "./components/policy/UserGuide";
+import Policy from "./components/policy/Privacy";
+import Privacy from "./components/policy/Privacy";
+import Terms from "./components/policy/Terms";
 
 function App() {
   return (
@@ -22,6 +27,12 @@ function App() {
 
       <Route path="/admin/*" element={<AdminPage />} />
       <Route path="/myPage" element={<MyPage />} />
+
+      {/* footer에 포함된 컨텐츠들 */}
+      <Route path="/service-intro" element={<ServiceIntro />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/user-guide" element={<UserGuide />} />
+      <Route path="/terms" element={<Terms />} />
 
       <Route element={<MainLayout />}>
         <Route path="/discovery" element={<DiscoveryPage />} />
