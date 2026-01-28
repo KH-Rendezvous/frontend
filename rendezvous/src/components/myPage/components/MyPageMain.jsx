@@ -1,32 +1,29 @@
 import React, { useState } from "react";
+import axios from "axios";
+
+// 모달 및 컴포넌트 임포트
 import ProfileEditModal from "../modals/ProfileEditModal";
 import ProfilePreview from "../components/ProfilePreview";
 import InterestEditModal from "../modals/InterestEditModal";
 import SchoolEditModal from "../modals/SchoolEditModal";
 import RegionEditModal from "../modals/RegionEditModal";
+import ProfileListItem from "../components/ProfileListItem";
 
-// 관심사 포맷팅 함수 (A, B, C 및 D 형태)
+// 관심사 포맷팅 함수
 const formatInterests = (items) => {
   if (!items || items.length === 0) return "관심사를 선택해주세요";
   if (items.length === 1) return items[0];
-
-  // 마지막 요소만 따로 떼어냄
   const lastItem = items[items.length - 1];
-  // 나머지 요소들은 쉼표로 연결
   const restItems = items.slice(0, items.length - 1).join(", ");
-
   return `${restItems} 및 ${lastItem}`;
 };
 
 const MyPageMain = () => {
+  // --- State 관리 ---
   const [activeTab, setActiveTab] = useState("edit");
-
   const [activeModal, setActiveModal] = useState(null);
-
   const [showInterestModal, setShowInterestModal] = useState(false);
-
   const [showSchoolModal, setShowSchoolModal] = useState(false);
-
   const [showRegionModal, setShowRegionModal] = useState(false);
 
   const [userData, setUserData] = useState({
@@ -36,7 +33,7 @@ const MyPageMain = () => {
     relationship: "진지한 연애",
     affection: "배려심 깊은 행동",
     education: "대학교 졸업",
-    contact: "카톡 자주 하는편",
+    contact: "카톡 자주 하는 편",
     zodiac: "염소자리",
     mbti: "ENFP",
     exercise: "가끔",
@@ -48,8 +45,8 @@ const MyPageMain = () => {
     gender: "남성",
   });
 
+  // --- 설정 옵션 (상수) ---
   const MODAL_OPTIONS = {
-    // 1. 기본 정보
     mbti: {
       title: "MBTI",
       type: "select",
@@ -72,49 +69,57 @@ const MyPageMain = () => {
         "ENTJ",
       ],
     },
-    height: {
-      title: "키",
-      type: "number",
-    },
-    gender: {
-      title: "성별",
-      type: "select",
-      options: ["남성", "여성"],
-    },
-    school: {
-      title: "학교",
-      type: "text",
-    },
-    region: {
-      title: "거주 지역",
-      type: "text", // "서울 강남구" 처럼 직접 입력
-    },
+    height: { title: "키", type: "number" },
+    gender: { title: "성별", type: "select", options: ["남성", "여성"] },
+    school: { title: "학교", type: "text" },
+    region: { title: "거주 지역", type: "text" },
 
-    // 2. 연애/성향
+    // ▼ 여기서부터 DB랑 똑같이 맞춤
     relationship: {
       title: "내가 찾는 관계",
       type: "select",
-      options: ["진지한 연애", "편안한 친구", "가벼운 만남", "결혼 전제"],
+      options: [
+        "진지한 연애",
+        "천천히 서로 알아가기",
+        "연애는 부담, 데이트만 선호",
+        "심심할 때 부를 술/밥 친구",
+        "같이 취미 즐길 동네 친구",
+        "아직 모르겠음",
+      ],
     },
     affection: {
       title: "애정표현 스타일",
       type: "select",
       options: [
         "배려심 깊은 행동",
-        "솔직한 말로 표현",
-        "적극적인 스킨십",
-        "무심한 듯 챙겨줌",
+        "선물",
+        "스킨십",
+        "칭찬",
+        "함께 보내는 시간",
+      ],
+    },
+    education: {
+      title: "학력",
+      type: "select",
+      options: [
+        "대학교 졸업",
+        "대학교 재학중",
+        "고등학교 졸업",
+        "박사",
+        "대학원 재학중",
+        "석사 졸업",
+        "직업전문학교",
       ],
     },
     contact: {
       title: "연락 스타일",
       type: "select",
       options: [
-        "카톡 자주 하는편",
-        "전화가 편함",
-        "만나는 게 좋음",
-        "연락 텀이 긴 편",
-        "용건만 간단히",
+        "카톡 자주 하는 편",
+        "전화 선호함",
+        "영상통화 선호함",
+        "카톡 별로 안 하는 편",
+        "직접 만나는 걸 선호함",
       ],
     },
     zodiac: {
@@ -135,44 +140,43 @@ const MyPageMain = () => {
         "염소자리",
       ],
     },
-
-    // 3. 라이프스타일/스펙
-    education: {
-      title: "학력",
-      type: "select",
-      options: [
-        "고등학교 졸업",
-        "전문대 졸업",
-        "대학교 재학",
-        "대학교 졸업",
-        "대학원 재학",
-        "대학원 졸업",
-        "기타",
-      ],
-    },
     exercise: {
       title: "운동",
       type: "select",
-      options: ["숨쉬기 운동만", "가끔 함", "주 2~3회", "매일 함", "헬창"],
+      options: ["매일", "자주", "가끔", "안함"],
     },
     drinking: {
       title: "음주",
       type: "select",
-      options: ["마시지 않음", "가끔 마심", "즐기는 편", "술고래"],
+      options: [
+        "아예 안 마심",
+        "가끔 마심",
+        "자주 마심",
+        "매일 마심",
+        "혼술할 정도로 좋아하는 편",
+        "친구들 만날 때만 마시는 편",
+        "현재 금주 중",
+      ],
     },
     smoking: {
       title: "흡연",
       type: "select",
-      options: ["비흡연", "가끔 피움", "전자담배", "애연가"],
+      options: [
+        "다른 흡연자가 있을 때만",
+        "술 마실 때만",
+        "비흡연",
+        "흡연",
+        "금연 중",
+      ],
     },
     social: {
       title: "소셜 미디어",
       type: "select",
-      options: ["인플루언서", "활발함", "눈팅족", "계정 없음"],
+      options: ["인플루언서", "마이크로 인플루언서", "SNS 안함", "눈팅족"],
     },
   };
 
-  // 모달 열기
+  // --- 핸들러 함수들 ---
   const openModal = (key) => {
     const config = MODAL_OPTIONS[key];
     if (config) {
@@ -184,13 +188,11 @@ const MyPageMain = () => {
     }
   };
 
-  // 데이터 저장
   const handleSaveData = (key, newValue) => {
     setUserData((prev) => ({ ...prev, [key]: newValue }));
-    setActiveModal(null); // 모달 닫기
+    setActiveModal(null);
   };
 
-  // 관심사 저장 핸들러
   const handleSaveInterests = (newInterests) => {
     setUserData((prev) => ({ ...prev, interests: newInterests }));
     setShowInterestModal(false);
@@ -210,13 +212,55 @@ const MyPageMain = () => {
     setShowRegionModal(false);
   };
 
-  // 데이터 구조 (이제 value를 state에서 가져옴)
+  // [수정하기] 버튼 클릭 시 (백엔드 전송)
+  const handleFinalSubmit = async () => {
+    if (!window.confirm("프로필을 수정하시겠습니까?")) return;
+
+    try {
+      // DTO 매핑용 데이터 객체 생성 (여기에 빠진 거 다 넣음)
+      const payload = {
+        memberNo: 1,
+        intro: userData.intro,
+        mbti: userData.mbti,
+        height: userData.height,
+        interestList: userData.interests,
+        relationship: userData.relationship, // 관계
+        affection: userData.affection, // 애정표현
+        education: userData.education, // 학력
+        contact: userData.contact, // 연락 스타일
+        zodiac: userData.zodiac, // 별자리
+        exercise: userData.exercise, // 운동
+        drinking: userData.drinking, // 음주
+        smoking: userData.smoking, // 흡연
+        social: userData.social, // SNS
+        region: userData.region, // 지역
+        school: userData.school, // 학교
+      };
+
+      console.log("서버로 보내는 데이터:", payload);
+
+      const response = await axios.put("/api/member/profile", payload);
+
+      if (response.data > 0 || response.data === "success") {
+        // Controller 리턴값에 따라 조건문 수정 필요할 수도 있음 (보통 int면 > 0)
+        alert("프로필이 성공적으로 수정되었습니다.");
+        setActiveTab("preview");
+      } else {
+        alert("수정 실패 (DB 업데이트 안됨)");
+      }
+    } catch (error) {
+      console.error("프로필 수정 에러:", error);
+      alert("서버 오류 발생");
+    }
+  };
+
+  // --- 화면 렌더링 데이터 구조 ---
   const profileSections = [
     {
       title: "키",
       items: [
         {
-          key: "height", // key 추가 (모달 식별용)
+          key: "height",
           icon: "📏",
           label: "키 추가하기",
           value: userData.height ? `${userData.height}cm` : "추가",
@@ -232,7 +276,6 @@ const MyPageMain = () => {
           icon: "👀",
           label: "내가 찾는 관계",
           value: userData.relationship,
-          isPlaceholder: false,
         },
       ],
     },
@@ -244,36 +287,21 @@ const MyPageMain = () => {
           icon: "🍀",
           label: "애정표현 스타일",
           value: userData.affection,
-          isPlaceholder: false,
         },
         {
           key: "education",
           icon: "🏫",
           label: "학력",
           value: userData.education,
-          isPlaceholder: false,
         },
         {
           key: "contact",
           icon: "💌",
           label: "연락 스타일",
           value: userData.contact,
-          isPlaceholder: false,
         },
-        {
-          key: "zodiac",
-          icon: "🌌",
-          label: "별자리",
-          value: userData.zodiac,
-          isPlaceholder: false,
-        },
-        {
-          key: "mbti",
-          icon: "📋",
-          label: "MBTI",
-          value: userData.mbti,
-          isPlaceholder: false,
-        },
+        { key: "zodiac", icon: "🌌", label: "별자리", value: userData.zodiac },
+        { key: "mbti", icon: "📋", label: "MBTI", value: userData.mbti },
       ],
     },
     {
@@ -284,28 +312,24 @@ const MyPageMain = () => {
           icon: "👟",
           label: "운동",
           value: userData.exercise,
-          isPlaceholder: false,
         },
         {
           key: "drinking",
           icon: "🍺",
           label: "음주",
           value: userData.drinking,
-          isPlaceholder: false,
         },
         {
           key: "smoking",
           icon: "🚬",
           label: "나의 평균 흡연량은?",
           value: userData.smoking,
-          isPlaceholder: false,
         },
         {
           key: "social",
           icon: "📱",
           label: "소셜 미디어",
           value: userData.social,
-          isPlaceholder: false,
         },
       ],
     },
@@ -338,12 +362,10 @@ const MyPageMain = () => {
       items: [
         {
           key: "gender",
-          label: userData.gender, // 예: "여성"
+          label: userData.gender,
           value: "",
-          isPlaceholder: false,
           noIcon: true,
-          // [추가] 읽기 전용 플래그 (이거 있으면 클릭 안 되게)
-          readOnly: true,
+          readOnly: true, // 수정 불가
         },
       ],
     },
@@ -379,9 +401,8 @@ const MyPageMain = () => {
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 md:p-14">
         {activeTab === "edit" ? (
-          /* --- [A] 수정 탭 내용 --- */
           <>
-            {/* 사진 그리드 */}
+            {/* 사진 그리드 (추후 컴포넌트 분리 권장) */}
             <div className="grid grid-cols-3 gap-3 mb-2">
               {[1, 2, 3, 4, 5, 6].map((num) => (
                 <div
@@ -432,15 +453,14 @@ const MyPageMain = () => {
               </div>
             </div>
 
-            {/* 관심사 */}
+            {/* 관심사 (특별한 포맷이라 별도 처리) */}
             <div className="mb-8">
               <h4 className="text-lg font-bold text-gray-800 mb-3">관심사</h4>
               <div
-                onClick={() => setShowInterestModal(true)} // 클릭 시 모달 오픈
+                onClick={() => setShowInterestModal(true)}
                 className="flex justify-between items-center py-3 px-1 border border-gray-200 rounded-lg bg-white cursor-pointer hover:bg-gray-50 transition-colors"
               >
                 <span className="text-sm text-gray-800 font-medium px-2 truncate">
-                  {/* 포맷팅 함수 적용 */}
                   {formatInterests(userData.interests)}
                 </span>
                 <span className="text-gray-400 text-sm px-2 flex-shrink-0">
@@ -449,7 +469,7 @@ const MyPageMain = () => {
               </div>
             </div>
 
-            {/* 상세 정보 섹션들 */}
+            {/* 상세 정보 섹션들 (★ 여기가 리팩토링된 부분) */}
             <div className="space-y-8 mb-10">
               {profileSections.map((section, idx) => (
                 <div key={idx}>
@@ -457,9 +477,11 @@ const MyPageMain = () => {
                     {section.title}
                   </h4>
                   <div>
+                    {/* 컴포넌트 재사용으로 코드가 훨씬 깔끔해짐 */}
                     {section.items.map((item, i) => (
-                      <div
+                      <ProfileListItem
                         key={i}
+                        item={item}
                         onClick={() => {
                           if (item.readOnly) return;
 
@@ -471,35 +493,7 @@ const MyPageMain = () => {
                             openModal(item.key);
                           }
                         }}
-                        className={`flex justify-between items-center py-3 border-b border-gray-100 transition-colors ${
-                          item.readOnly
-                            ? "cursor-default"
-                            : "cursor-pointer hover:bg-gray-50"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          {!item.noIcon && (
-                            <span className="text-base">{item.icon}</span>
-                          )}
-                          <span
-                            className={`text-sm font-bold ${item.isPlaceholder ? "text-gray-500" : "text-gray-800"}`}
-                          >
-                            {item.label}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {item.value && (
-                            <span className="text-sm font-medium text-gray-800">
-                              {item.value}
-                            </span>
-                          )}
-                          {!item.readOnly && (
-                            <span className="text-gray-400 text-sm ml-1">
-                              {">"}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                      />
                     ))}
                   </div>
                 </div>
@@ -508,22 +502,23 @@ const MyPageMain = () => {
 
             {/* 수정 버튼 */}
             <div className="mt-8 flex justify-center">
-              <button className="bg-[#EE4B6F] hover:bg-[#ff3b60] text-white font-bold py-3 px-10 rounded-full shadow-md transition-all text-sm">
+              <button
+                className="bg-[#EE4B6F] hover:bg-[#ff3b60] text-white font-bold py-3 px-10 rounded-full shadow-md transition-all text-sm"
+                onClick={handleFinalSubmit}
+              >
                 수정하기
               </button>
             </div>
           </>
         ) : (
           /* --- [B] 미리보기 탭 내용 --- */
-          /* 흰 박스 안에서 가운데 정렬만 해줌 */
           <div className="flex justify-center">
             <ProfilePreview data={userData} />
           </div>
         )}
       </div>
 
-      {/* 모달 */}
-
+      {/* --- 모달들 --- */}
       {showInterestModal && (
         <InterestEditModal
           currentInterests={userData.interests}
@@ -543,7 +538,6 @@ const MyPageMain = () => {
         />
       )}
 
-      {/* 학교 검색 모달 */}
       {showSchoolModal && (
         <SchoolEditModal
           currentSchool={userData.school}
@@ -552,7 +546,6 @@ const MyPageMain = () => {
         />
       )}
 
-      {/* 거주 지역 모달 렌더링 */}
       {showRegionModal && (
         <RegionEditModal
           currentRegion={userData.region}
