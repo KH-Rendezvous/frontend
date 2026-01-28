@@ -1,7 +1,56 @@
 import React, { useState } from "react";
+import axios from "axios"; // ★ axios 임포트 필수
 
 const BlockModal = ({ isOpen, onClose }) => {
-  // 모달이 닫혀있으면 아무것도 안 보여줌
+  // 1. 입력값 관리용 State
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    email: "",
+  });
+
+  // 입력값 변경 핸들러
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // 2. 전송 버튼 클릭 핸들러 (백엔드 통신)
+  const handleSubmit = async () => {
+    // 유효성 검사: 최소한 정보 하나는 있어야 함
+    if (!formData.name && !formData.phone && !formData.email) {
+      alert("차단할 사람의 정보를 하나라도 입력해주세요.");
+      return;
+    }
+
+    if (!window.confirm("입력한 연락처를 차단하시겠습니까?")) return;
+
+    try {
+      // ★ 백엔드 DTO 필드명(targetName 등)에 맞춰서 매핑해서 보냄
+      const response = await axios.post("/api/block/insert", {
+        targetName: formData.name,
+        targetPhone: formData.phone,
+        targetEmail: formData.email,
+      });
+
+      if (response.data === "success") {
+        alert("성공적으로 차단되었습니다.");
+        setFormData({ name: "", phone: "", email: "" }); // 입력창 초기화
+        onClose(); // 모달 닫기
+      } else if (response.data === "login_required") {
+        alert("로그인이 필요합니다.");
+      } else {
+        alert("차단 등록에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("차단 등록 에러:", error);
+      alert("서버 통신 중 오류가 발생했습니다.");
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -10,7 +59,7 @@ const BlockModal = ({ isOpen, onClose }) => {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
       onClick={onClose}
     >
-      {/* 2. 모달 창 본문 (클릭해도 안 닫히게 e.stopPropagation) */}
+      {/* 2. 모달 창 본문 */}
       <div
         className="bg-white w-[90%] max-w-md rounded-lg shadow-lg overflow-hidden"
         onClick={(e) => e.stopPropagation()}
@@ -24,6 +73,9 @@ const BlockModal = ({ isOpen, onClose }) => {
           <div className="px-5 py-4 bg-white">
             <input
               type="text"
+              name="name" // ★ name 속성 추가
+              value={formData.name} // ★ value 연결
+              onChange={handleChange} // ★ 핸들러 연결
               placeholder="이름 입력"
               className="w-full text-sm outline-none placeholder-gray-400 text-gray-800"
             />
@@ -43,7 +95,10 @@ const BlockModal = ({ isOpen, onClose }) => {
             <div className="px-5 pb-4">
               <input
                 type="tel"
-                placeholder="전화번호 입력"
+                name="phone" // ★ name 속성 추가
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="전화번호 입력 (- 없이 입력)"
                 className="w-full text-sm outline-none placeholder-gray-400 text-gray-800"
               />
             </div>
@@ -55,6 +110,9 @@ const BlockModal = ({ isOpen, onClose }) => {
             <div className="px-5 pb-4">
               <input
                 type="email"
+                name="email" // ★ name 속성 추가
+                value={formData.email}
+                onChange={handleChange}
                 placeholder="이메일을 입력하세요"
                 className="w-full text-sm outline-none placeholder-gray-400 text-gray-800"
               />
@@ -66,10 +124,7 @@ const BlockModal = ({ isOpen, onClose }) => {
         <div className="p-5 bg-gray-50 border-t border-gray-200">
           <button
             className="w-full bg-[#ff4b6e] hover:bg-[#ff3b60] text-white font-bold py-3 rounded-lg transition-colors"
-            onClick={() => {
-              alert("차단 요청 전송됨 (기능은 나중에 구현)");
-              onClose();
-            }}
+            onClick={handleSubmit} // ★ 클릭 시 전송 함수 실행
           >
             전송
           </button>

@@ -2,35 +2,148 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
+import axios from "axios";
+
+// 모달 컴포넌트들 임포트
 import BlockModal from "../modals/BlockModal";
+import BlockListModal from "../modals/BlockListModal";
 import GenderModal from "../modals/GenderModal";
 import QnaModal from "../modals/QnAModal";
 import DeleteAccountModal from "../modals/DeleteAccountModal";
 
 const MyPageSidebar = () => {
+  const navigate = useNavigate();
+
+  const memberNo = 1;
+
   const [distance, setDistance] = useState(10);
 
   const [ageRange, setAgeRange] = useState([19, 39]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [isBlockListModalOpen, setIsBlockListModalOpen] = useState(false);
+
   const [isQnaModalOpen, setIsQnaModalOpen] = useState(false);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const [isGenderModalOpen, setIsGenderModalOpen] = useState(false);
+
   const [gender, setGender] = useState("여성");
 
-  const navigate = useNavigate();
+  const [visibility, setVisibility] = useState("A"); // 'A' or 'P'
 
-  // 거리 바뀔 때 실행되는 함수
+  // 1. 거리 UI 변경 (슬라이더 드래그 중일 때 - 화면만 바뀜)
   const handleDistanceChange = (value) => {
     setDistance(value);
+  };
+
+  const handleDistanceAfterChange = async (value) => {
+    console.log("DB로 전송할 거리:", value);
+
+    try {
+      // 백엔드 컨트롤러로 요청 전송
+      const response = await axios.put("http://localhost/api/mypage/distance", {
+        memberNo: memberNo,
+        searchDistance: value,
+      });
+
+      if (response.data.result === "success") {
+        console.log("✅ 거리 설정 저장 완료!");
+      } else {
+        alert("저장 실패");
+      }
+    } catch (error) {
+      console.error("❌ 에러 발생:", error);
+      alert("서버 통신 중 오류가 발생했습니다.");
+    }
   };
 
   // 나이 바뀔 때 실행되는 함수
   const handleAgeChange = (value) => {
     setAgeRange(value);
+  };
+
+  // 성별 변경 저장 함수
+  const handleGenderSave = async (newGenderKor) => {
+    console.log("선택한 성별(화면용):", newGenderKor);
+
+    // 한글 -> DB 코드 변환 ('A': 모든 성별, 'M': 남성, 'F': 여성)
+    let code = "A"; // 기본값 (모든 성별)
+
+    if (newGenderKor === "남성") {
+      code = "M";
+    } else if (newGenderKor === "여성") {
+      code = "F";
+    }
+    // "모든 성별"이면 위 조건 안 타서 그냥 "A"가 됨.
+
+    try {
+      const response = await axios.put("http://localhost/api/mypage/gender", {
+        memberNo: memberNo,
+        targetGender: code,
+      });
+
+      if (response.data.result === "success") {
+        console.log(`✅ 성별 변경 완료! (${newGenderKor} -> ${code})`);
+        setGender(newGenderKor); // 화면도 변경
+      } else {
+        alert("성별 변경 실패");
+      }
+    } catch (error) {
+      console.error("❌ 성별 변경 에러:", error);
+      alert("서버 통신 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleAgeAfterChange = async (value) => {
+    // value는 [19, 50] 처럼 배열로 들어옴
+    const minAge = value[0];
+    const maxAge = value[1];
+
+    console.log(`DB로 전송할 연령대: ${minAge}세 ~ ${maxAge}세`);
+
+    try {
+      const response = await axios.put("http://localhost/api/mypage/age", {
+        memberNo: memberNo,
+        targetMinAge: minAge,
+        targetMaxAge: maxAge,
+      });
+
+      if (response.data.result === "success") {
+        console.log("✅ 연령대 설정 저장 완료!");
+      } else {
+        alert("연령대 저장 실패");
+      }
+    } catch (error) {
+      console.error("❌ 연령대 저장 에러:", error);
+    }
+  };
+
+  const handleVisibilityChange = async (e) => {
+    const newCode = e.target.value; // 'A' or 'P'
+    console.log("변경할 공개범위:", newCode);
+
+    try {
+      // 키 값 profileOpen으로 변경
+      const response = await axios.put(
+        "http://localhost/api/mypage/visibility",
+        {
+          memberNo: memberNo,
+          profileOpen: newCode, // ★ 여기 수정됨!!
+        },
+      );
+
+      if (response.data.result === "success") {
+        console.log("✅ 공개범위 저장 완료:", newCode);
+        setVisibility(newCode);
+      } else {
+        alert("저장 실패");
+      }
+    } catch (error) {
+      console.error("❌ 공개범위 저장 에러:", error);
+    }
   };
 
   return (
@@ -95,12 +208,14 @@ const MyPageSidebar = () => {
               <span className="text-gray-800">{distance}km</span>
             </div>
             {/* 거리 슬라이더 (점 1개) */}
+            {/* ★ 거리 슬라이더 부분 수정 */}
             <div className="px-2">
               <Slider
                 min={1}
                 max={50}
                 value={distance}
-                onChange={handleDistanceChange}
+                onChange={handleDistanceChange} // 드래그 중엔 UI만 변경
+                onChangeComplete={handleDistanceAfterChange} // ★ 손 뗐을 때 DB 저장 함수 실행
                 styles={{
                   track: { backgroundColor: "#EE4B6F", height: 4 },
                   handle: {
@@ -119,14 +234,12 @@ const MyPageSidebar = () => {
           </div>
 
           <div
-            // 클릭하면 성별 모달 열기
             onClick={() => setIsGenderModalOpen(true)}
             className="flex justify-between items-center py-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors group px-1"
           >
             <span className="text-sm font-medium text-black group-hover:text-gray-900">
               보고 싶은 성별
             </span>
-            {/* 현재 설정된 gender 값을 보여줌 */}
             <span className="text-sm text-gray-500 group-hover:text-gray-800">
               {gender} {">"}
             </span>
@@ -149,6 +262,7 @@ const MyPageSidebar = () => {
                 max={50}
                 value={ageRange}
                 onChange={handleAgeChange}
+                onChangeComplete={handleAgeAfterChange}
                 styles={{
                   track: { backgroundColor: "#EE4B6F", height: 4 },
                   handle: {
@@ -173,6 +287,7 @@ const MyPageSidebar = () => {
             프로필 공개 설정
           </h3>
 
+          {/* 옵션 1: 모든 상대 (A) */}
           <label className="flex justify-between items-center py-4 cursor-pointer hover:bg-gray-50 transition-colors px-1 border-b border-gray-100">
             <div>
               <div className="text-sm font-bold text-gray-700 mb-1">
@@ -185,11 +300,14 @@ const MyPageSidebar = () => {
             <input
               type="radio"
               name="visibility"
-              defaultChecked
+              value="A" // 값 설정
+              checked={visibility === "A"} // 상태랑 일치하면 체크
+              onChange={handleVisibilityChange} // 클릭 시 바로 저장
               className="w-5 h-5 accent-[#EE4B6F] cursor-pointer"
             />
           </label>
 
+          {/* 옵션 2: 비공개 모드 (P) */}
           <label className="flex justify-between items-center py-4 cursor-pointer hover:bg-gray-50 transition-colors px-1 border-b border-gray-100">
             <div>
               <div className="text-sm font-bold text-gray-700 mb-1">
@@ -202,6 +320,9 @@ const MyPageSidebar = () => {
             <input
               type="radio"
               name="visibility"
+              value="P" // 값 설정
+              checked={visibility === "P"} // 상태랑 일치하면 체크
+              onChange={handleVisibilityChange} // 클릭 시 바로 저장
               className="w-5 h-5 accent-[#EE4B6F] cursor-pointer"
             />
           </label>
@@ -218,6 +339,14 @@ const MyPageSidebar = () => {
             className="flex justify-between items-center py-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors px-1"
           >
             <span className="text-sm font-medium text-black">연락처 차단</span>
+            <span className="text-gray-400">{">"}</span>
+          </div>
+
+          <div
+            onClick={() => setIsBlockListModalOpen(true)}
+            className="flex justify-between items-center py-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors px-1"
+          >
+            <span className="text-sm font-medium text-black">차단 관리</span>
             <span className="text-gray-400">{">"}</span>
           </div>
 
@@ -248,11 +377,16 @@ const MyPageSidebar = () => {
       </div>
       <BlockModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
 
+      <BlockListModal
+        isOpen={isBlockListModalOpen}
+        onClose={() => setIsBlockListModalOpen(false)}
+      />
+
       <GenderModal
         isOpen={isGenderModalOpen}
         onClose={() => setIsGenderModalOpen(false)}
         currentGender={gender}
-        onSave={(newGender) => setGender(newGender)}
+        onSave={handleGenderSave}
       />
 
       <QnaModal
