@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 // 모달 및 컴포넌트 임포트
@@ -19,164 +19,173 @@ const formatInterests = (items) => {
 };
 
 const MyPageMain = () => {
-  // --- State 관리 ---
   const [activeTab, setActiveTab] = useState("edit");
   const [activeModal, setActiveModal] = useState(null);
+  const [originalNickname, setOriginalNickname] = useState("");
   const [showInterestModal, setShowInterestModal] = useState(false);
   const [showSchoolModal, setShowSchoolModal] = useState(false);
   const [showRegionModal, setShowRegionModal] = useState(false);
+  const [masterCodes, setMasterCodes] = useState([]);
 
   const [userData, setUserData] = useState({
-    intro: "안녕하세요!",
-    interests: ["언어 교환", "명상", "여행", "직장생활", "산책"],
+    nickname: "",
+    intro: "",
+    interests: [],
     height: "",
-    relationship: "진지한 연애",
-    affection: "배려심 깊은 행동",
-    education: "대학교 졸업",
-    contact: "카톡 자주 하는 편",
-    zodiac: "염소자리",
-    mbti: "ENFP",
-    exercise: "가끔",
-    drinking: "가끔 마심",
-    smoking: "비흡연",
-    social: "눈팅족",
-    school: "중앙대학교",
+    relationship: "",
+    affection: "",
+    education: "",
+    contact: "",
+    zodiac: "",
+    mbti: "",
+    exercise: "",
+    drinking: "",
+    smoking: "",
+    social: "",
+    school: "",
+    schNo: 0,
     region: "",
-    gender: "남성",
+    regionId: 0,
+    gender: "",
   });
 
-  // --- 설정 옵션 (상수) ---
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // 공통 코드(MASTER_CODES) 가져오기
+        try {
+          const codeRes = await axios.get("http://localhost/api/mypage/codes");
+          if (codeRes.data.result === "success") {
+            console.log(
+              "공통 코드 로드 완료:",
+              codeRes.data.list.length + "개",
+            );
+            setMasterCodes(codeRes.data.list);
+          }
+        } catch (e) {
+          console.warn("공통 코드 로딩 실패 (백엔드 확인 필요)");
+        }
+
+        // 내 프로필 정보 가져오기
+        const profileRes = await axios.get(
+          "http://localhost/api/mypage/profile",
+        );
+        if (profileRes.data.result === "success") {
+          const dbData = profileRes.data.data;
+          setOriginalNickname(dbData.nickname || "");
+
+          setUserData({
+            nickname: dbData.nickname || "",
+            intro: dbData.intro || "",
+            interests: dbData.interestList || [],
+            height: dbData.height || "",
+            mbti: dbData.mbti || "",
+
+            // 학교 정보
+            school: dbData.schoolName || "",
+            schNo: dbData.schNo || 0,
+
+            region:
+              dbData.regionId === 0 || !dbData.regionName
+                ? ""
+                : dbData.regionName,
+            regionId: dbData.regionId || 0,
+
+            // 나머지 드롭다운 값들
+            relationship: dbData.relationship || "",
+            affection: dbData.affection || "",
+            education: dbData.education || "",
+            contact: dbData.contact || "",
+            zodiac: dbData.zodiac || "",
+            exercise: dbData.exercise || "",
+            drinking: dbData.drinking || "",
+            smoking: dbData.smoking || "",
+            social: dbData.social || "",
+            gender:
+              dbData.gender === "M"
+                ? "남성"
+                : dbData.gender === "F"
+                  ? "여성"
+                  : "",
+          });
+        }
+      } catch (error) {
+        console.error("데이터 로딩 에러:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // 카테고리별 옵션 이름만 뽑아주는 헬퍼 함수
+  const getOptions = (categoryName) => {
+    return masterCodes
+      .filter((code) => code.category === categoryName) // 해당 카테고리만 필터링
+      .map((code) => code.codeName); // 이름만 문자열 배열로 변환
+  };
+
+  // 설정 옵션 (상수)
   const MODAL_OPTIONS = {
-    mbti: {
-      title: "MBTI",
-      type: "select",
-      options: [
-        "ISTJ",
-        "ISFJ",
-        "INFJ",
-        "INTJ",
-        "ISTP",
-        "ISFP",
-        "INFP",
-        "INTP",
-        "ESTP",
-        "ESFP",
-        "ENFP",
-        "ENTP",
-        "ESTJ",
-        "ESFJ",
-        "ENFJ",
-        "ENTJ",
-      ],
-    },
+    // DB에 없는 항목들은 기존대로 유지
     height: { title: "키", type: "number" },
     gender: { title: "성별", type: "select", options: ["남성", "여성"] },
     school: { title: "학교", type: "text" },
     region: { title: "거주 지역", type: "text" },
 
-    // ▼ 여기서부터 DB랑 똑같이 맞춤
+    // DB 데이터 사용 (getOptions 함수 이용)
+    mbti: {
+      title: "MBTI",
+      type: "select",
+      options: getOptions("MBTI"),
+    },
     relationship: {
       title: "내가 찾는 관계",
       type: "select",
-      options: [
-        "진지한 연애",
-        "천천히 서로 알아가기",
-        "연애는 부담, 데이트만 선호",
-        "심심할 때 부를 술/밥 친구",
-        "같이 취미 즐길 동네 친구",
-        "아직 모르겠음",
-      ],
+      options: getOptions("내가 찾는 관계"),
     },
     affection: {
       title: "애정표현 스타일",
       type: "select",
-      options: [
-        "배려심 깊은 행동",
-        "선물",
-        "스킨십",
-        "칭찬",
-        "함께 보내는 시간",
-      ],
+      options: getOptions("애정표현 스타일"),
     },
     education: {
       title: "학력",
       type: "select",
-      options: [
-        "대학교 졸업",
-        "대학교 재학중",
-        "고등학교 졸업",
-        "박사",
-        "대학원 재학중",
-        "석사 졸업",
-        "직업전문학교",
-      ],
+      options: getOptions("학력"),
     },
     contact: {
       title: "연락 스타일",
       type: "select",
-      options: [
-        "카톡 자주 하는 편",
-        "전화 선호함",
-        "영상통화 선호함",
-        "카톡 별로 안 하는 편",
-        "직접 만나는 걸 선호함",
-      ],
+      options: getOptions("연락 스타일"),
     },
     zodiac: {
       title: "별자리",
       type: "select",
-      options: [
-        "물병자리",
-        "물고기자리",
-        "양자리",
-        "황소자리",
-        "쌍둥이자리",
-        "게자리",
-        "사자자리",
-        "처녀자리",
-        "천칭자리",
-        "전갈자리",
-        "사수자리",
-        "염소자리",
-      ],
+      options: getOptions("별자리"),
     },
     exercise: {
       title: "운동",
       type: "select",
-      options: ["매일", "자주", "가끔", "안함"],
+      options: getOptions("운동"),
     },
     drinking: {
       title: "음주",
       type: "select",
-      options: [
-        "아예 안 마심",
-        "가끔 마심",
-        "자주 마심",
-        "매일 마심",
-        "혼술할 정도로 좋아하는 편",
-        "친구들 만날 때만 마시는 편",
-        "현재 금주 중",
-      ],
+      options: getOptions("음주"),
     },
     smoking: {
       title: "흡연",
       type: "select",
-      options: [
-        "다른 흡연자가 있을 때만",
-        "술 마실 때만",
-        "비흡연",
-        "흡연",
-        "금연 중",
-      ],
+      options: getOptions("흡연"),
     },
     social: {
       title: "소셜 미디어",
       type: "select",
-      options: ["인플루언서", "마이크로 인플루언서", "SNS 안함", "눈팅족"],
+      options: getOptions("소셜 미디어"),
     },
   };
 
-  // --- 핸들러 함수들 ---
+  // 핸들러 함수들
   const openModal = (key) => {
     const config = MODAL_OPTIONS[key];
     if (config) {
@@ -186,6 +195,11 @@ const MyPageMain = () => {
         currentValue: userData[key] || "",
       });
     }
+  };
+
+  const handleNicknameChange = (e) => {
+    if (e.target.value.length > 10) return;
+    setUserData((prev) => ({ ...prev, nickname: e.target.value }));
   };
 
   const handleSaveData = (key, newValue) => {
@@ -202,51 +216,87 @@ const MyPageMain = () => {
     setUserData((prev) => ({ ...prev, intro: e.target.value }));
   };
 
-  const handleSaveSchool = (schoolName) => {
-    setUserData((prev) => ({ ...prev, school: schoolName }));
+  const handleSaveSchool = (schoolObj) => {
+    setUserData((prev) => ({
+      ...prev,
+      school: schoolObj.SCH_NAME,
+      schNo: schoolObj.SCH_NO,
+    }));
+
+    // 모달 닫기
     setShowSchoolModal(false);
   };
 
-  const handleSaveRegion = (regionName) => {
-    setUserData((prev) => ({ ...prev, region: regionName }));
+  const handleSaveRegion = (regionObj) => {
+    setUserData((prev) => ({
+      ...prev,
+      region: regionObj.FULL_ADDR, // 화면 보여주기용
+      regionId: regionObj.REGION_ID, // DB 저장용
+    }));
     setShowRegionModal(false);
   };
 
   // [수정하기] 버튼 클릭 시 (백엔드 전송)
   const handleFinalSubmit = async () => {
+    if (userData.nickname.trim().length < 2) {
+      alert("닉네임은 2글자 이상 입력해주세요.");
+      return;
+    }
+
+    if (userData.nickname !== originalNickname) {
+      try {
+        const checkRes = await axios.get(
+          "http://localhost/api/mypage/nickname/check",
+          {
+            params: { nickname: userData.nickname },
+          },
+        );
+
+        if (checkRes.data > 0) {
+          alert("이미 사용 중인 닉네임입니다.");
+          return; // 함수 종료
+        }
+      } catch (error) {
+        console.error("중복 체크 실패:", error);
+        alert("서버 통신 오류");
+        return;
+      }
+    }
+
     if (!window.confirm("프로필을 수정하시겠습니까?")) return;
 
     try {
-      // DTO 매핑용 데이터 객체 생성 (여기에 빠진 거 다 넣음)
+      // DTO 매핑용 데이터 객체 생성
       const payload = {
         memberNo: 1,
+        nickname: userData.nickname,
         intro: userData.intro,
         mbti: userData.mbti,
         height: userData.height,
         interestList: userData.interests,
-        relationship: userData.relationship, // 관계
-        affection: userData.affection, // 애정표현
-        education: userData.education, // 학력
-        contact: userData.contact, // 연락 스타일
-        zodiac: userData.zodiac, // 별자리
-        exercise: userData.exercise, // 운동
-        drinking: userData.drinking, // 음주
-        smoking: userData.smoking, // 흡연
-        social: userData.social, // SNS
-        region: userData.region, // 지역
-        school: userData.school, // 학교
+        relationship: userData.relationship,
+        affection: userData.affection,
+        education: userData.education,
+        contact: userData.contact,
+        zodiac: userData.zodiac,
+        exercise: userData.exercise,
+        drinking: userData.drinking,
+        smoking: userData.smoking,
+        social: userData.social,
+        regionId: userData.regionId ? userData.regionId : 0,
+        schNo: userData.schNo ? userData.schNo : null,
       };
 
-      console.log("서버로 보내는 데이터:", payload);
+      const response = await axios.put(
+        "http://localhost/api/mypage/profile",
+        payload,
+      );
 
-      const response = await axios.put("/api/member/profile", payload);
-
-      if (response.data > 0 || response.data === "success") {
-        // Controller 리턴값에 따라 조건문 수정 필요할 수도 있음 (보통 int면 > 0)
+      if (response.data.result === "success") {
         alert("프로필이 성공적으로 수정되었습니다.");
         setActiveTab("preview");
       } else {
-        alert("수정 실패 (DB 업데이트 안됨)");
+        alert("수정 실패");
       }
     } catch (error) {
       console.error("프로필 수정 에러:", error);
@@ -254,7 +304,7 @@ const MyPageMain = () => {
     }
   };
 
-  // --- 화면 렌더링 데이터 구조 ---
+  // 화면 렌더링 데이터 구조
   const profileSections = [
     {
       title: "키",
@@ -338,9 +388,10 @@ const MyPageMain = () => {
       items: [
         {
           key: "school",
-          label: userData.school || "학교 입력",
+          label:
+            userData.schNo === 0 ? "비공개" : userData.school || "학교 입력",
           value: "",
-          isPlaceholder: !userData.school,
+          isPlaceholder: !userData.school && userData.schNo !== 0,
           noIcon: true,
         },
       ],
@@ -350,9 +401,10 @@ const MyPageMain = () => {
       items: [
         {
           key: "region",
-          label: userData.region || "지역 입력",
+          label:
+            userData.regionId === 0 ? "비공개" : userData.region || "지역 입력",
           value: "",
-          isPlaceholder: !userData.region,
+          isPlaceholder: !userData.region && userData.regionId !== 0,
           noIcon: true,
         },
       ],
@@ -431,12 +483,34 @@ const MyPageMain = () => {
               <br /> 사진을 첫 번째 대표 사진으로 설정해 보세요.
             </p>
 
+            <div className="mb-10">
+              {" "}
+              {/* 여백 넉넉하게 */}
+              <div className="flex justify-between mb-3">
+                {" "}
+                {/* mb-2 -> mb-3 */}
+                <h3 className="font-bold text-gray-800 text-lg">닉네임</h3>
+                <span className="text-xs text-gray-400">
+                  {userData.nickname.length}/10
+                </span>
+              </div>
+              <input
+                type="text"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#EE4B6F] focus:ring-1 focus:ring-[#EE4B6F] transition-all bg-gray-50 focus:bg-white"
+                placeholder="닉네임을 입력하세요"
+                value={userData.nickname}
+                onChange={handleNicknameChange}
+                maxLength={10}
+              />
+              <p className="text-xs text-gray-400 mt-2 ml-1">
+                Rendezvous 활동 시 사용될 이름입니다.
+              </p>
+            </div>
+
             {/* 자기소개 */}
             <div className="mb-10">
               <div className="flex justify-between items-end mb-2 border-b border-gray-200 pb-2">
-                <h3 className="font-bold text-gray-800 text-sm">
-                  {"{사용자명}"}님 소개
-                </h3>
+                <h3 className="font-bold text-gray-800 text-lg">자기 소개</h3>
               </div>
               <div className="relative">
                 <textarea
@@ -469,7 +543,7 @@ const MyPageMain = () => {
               </div>
             </div>
 
-            {/* 상세 정보 섹션들 (★ 여기가 리팩토링된 부분) */}
+            {/* 상세 정보 섹션들 */}
             <div className="space-y-8 mb-10">
               {profileSections.map((section, idx) => (
                 <div key={idx}>
@@ -477,7 +551,6 @@ const MyPageMain = () => {
                     {section.title}
                   </h4>
                   <div>
-                    {/* 컴포넌트 재사용으로 코드가 훨씬 깔끔해짐 */}
                     {section.items.map((item, i) => (
                       <ProfileListItem
                         key={i}
@@ -511,7 +584,7 @@ const MyPageMain = () => {
             </div>
           </>
         ) : (
-          /* --- [B] 미리보기 탭 내용 --- */
+          /* 미리보기 탭 내용*/
           <div className="flex justify-center">
             <ProfilePreview data={userData} />
           </div>
@@ -519,8 +592,10 @@ const MyPageMain = () => {
       </div>
 
       {/* --- 모달들 --- */}
+
       {showInterestModal && (
         <InterestEditModal
+          allInterestOptions={getOptions("관심사")}
           currentInterests={userData.interests}
           onClose={() => setShowInterestModal(false)}
           onSave={handleSaveInterests}

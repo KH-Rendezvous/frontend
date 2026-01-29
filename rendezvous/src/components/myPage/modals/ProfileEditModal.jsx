@@ -53,7 +53,7 @@ const ProfileEditModal = ({
           {type === "select" ? (
             // 셀렉트 박스 (MBTI, 흡연 등)
             <div className="flex flex-col gap-2 max-h-[40vh] overflow-y-auto custom-scrollbar">
-              {options.map((option) => (
+              {(options || []).map((option) => (
                 <button
                   key={option}
                   onClick={() => setInternalValue(option)}

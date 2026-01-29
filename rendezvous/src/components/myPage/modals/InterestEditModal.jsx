@@ -1,57 +1,17 @@
 import React, { useState, useEffect } from "react";
 
-const INTEREST_LIST = [
-  "MBTI",
-  "맛집 탐방",
-  "넷플릭스",
-  "해외여행",
-  "산책",
-  "카페 투어",
-  "헬스",
-  "드라이브",
-  "호캉스",
-  "반려동물",
-  "영화 감상",
-  "와인/위스키",
-  "전시회 관람",
-  "유튜브",
-  "테니스/골프",
-  "주식/재테크",
-  "온라인 게임",
-  "캠핑/차박",
-  "자기계발",
-  "페스티벌",
-  "코인 노래방",
-  "진지한 대화",
-  "쇼핑",
-  "러닝",
-  "독서",
-  "보드게임",
-  "워라밸",
-  "요리",
-  "사진 촬영",
-  "자취",
-  "콘솔 게임",
-  "낚시",
-  "직장생활",
-  "스터디",
-  "피아노",
-  "명상",
-  "여행",
-  "클라이밍",
-  "언어 교환",
-  "웹툰",
-];
-
-const InterestEditModal = ({ currentInterests = [], onClose, onSave }) => {
+const InterestEditModal = ({
+  allInterestOptions, // ★ 부모에서 넘겨준 DB 데이터
+  currentInterests = [],
+  onClose,
+  onSave,
+}) => {
   const [selected, setSelected] = useState(currentInterests);
-
   const [animate, setAnimate] = useState(false);
 
-  // 혹시 모달이 열려있는 동안 부모 데이터가 바뀌면 동기화
+  // 부모 데이터 동기화 & 애니메이션 시작
   useEffect(() => {
-    setSelected(currentInterests);
-    // [2] 마운트 시 애니메이션 시작
+    setSelected(currentInterests || []);
     setAnimate(true);
   }, [currentInterests]);
 
@@ -79,9 +39,13 @@ const InterestEditModal = ({ currentInterests = [], onClose, onSave }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={onClose} // 배경 클릭 시 닫기
+    >
       <div
         className={`bg-white rounded-3xl w-full max-w-[600px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] transform transition-all duration-300 ${animate ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+        onClick={(e) => e.stopPropagation()} // 내부 클릭 전파 방지
       >
         {/* 헤더 */}
         <div className="pt-10 pb-6 px-6 text-center">
@@ -93,10 +57,11 @@ const InterestEditModal = ({ currentInterests = [], onClose, onSave }) => {
           </p>
         </div>
 
-        {/* 그리드 컨텐츠*/}
-        <div className="flex-1 overflow-y-auto px-6 py-2">
+        {/* 그리드 컨텐츠 */}
+        <div className="flex-1 overflow-y-auto px-6 py-2 custom-scrollbar">
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-            {INTEREST_LIST.map((item) => {
+            {/* ★ DB 데이터 사용 (데이터 없으면 빈 배열 처리로 에러 방지) */}
+            {(allInterestOptions || []).map((item) => {
               const isActive = selected.includes(item);
               return (
                 <button
@@ -112,6 +77,13 @@ const InterestEditModal = ({ currentInterests = [], onClose, onSave }) => {
                 </button>
               );
             })}
+
+            {/* 데이터 로딩 실패/지연 시 안내 문구 */}
+            {(!allInterestOptions || allInterestOptions.length === 0) && (
+              <div className="col-span-full py-10 text-center text-gray-400">
+                관심사 목록을 불러오는 중입니다...
+              </div>
+            )}
           </div>
         </div>
 
@@ -119,7 +91,7 @@ const InterestEditModal = ({ currentInterests = [], onClose, onSave }) => {
         <div className="p-6 border-t border-gray-100 flex justify-center bg-white">
           <button
             onClick={handleSave}
-            // [수정] 3개 이상이면 버튼 활성화
+            // 3개 이상이면 버튼 활성화
             className={`w-full max-w-xs py-3 rounded-full font-bold text-lg transition-colors shadow-md ${
               selected.length >= 3
                 ? "bg-[#EE4B6F] text-white hover:bg-[#ff3b60]"
