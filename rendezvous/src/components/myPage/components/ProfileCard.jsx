@@ -145,7 +145,6 @@ const ProfileCard = ({ userData }) => {
               내가 찾는 관계
             </h3>
             <div className="flex items-center gap-2 text-gray-800 font-bold text-lg">
-              <span className="text-xl">🌹</span>
               {userData.relationship || "정보 없음"}
             </div>
           </section>

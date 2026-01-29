@@ -30,7 +30,7 @@ const BlockModal = ({ isOpen, onClose }) => {
 
     try {
       // ★ 백엔드 DTO 필드명(targetName 등)에 맞춰서 매핑해서 보냄
-      const response = await axios.post("/api/block/insert", {
+      const response = await axios.post("http://localhost/api/block/insert", {
         targetName: formData.name,
         targetPhone: formData.phone,
         targetEmail: formData.email,
@@ -68,15 +68,15 @@ const BlockModal = ({ isOpen, onClose }) => {
         <div className="flex flex-col">
           {/* 이름 섹션 */}
           <div className="bg-gray-100 px-5 py-3 border-y border-gray-200">
-            <h3 className="text-sm font-bold text-gray-700">이름</h3>
+            <h3 className="text-sm font-bold text-gray-700">이름 (선택)</h3>
           </div>
           <div className="px-5 py-4 bg-white">
             <input
               type="text"
-              name="name" // ★ name 속성 추가
-              value={formData.name} // ★ value 연결
-              onChange={handleChange} // ★ 핸들러 연결
-              placeholder="이름 입력"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="누군지 식별할 이름이나 별명을 입력하세요"
               className="w-full text-sm outline-none placeholder-gray-400 text-gray-800"
             />
           </div>
@@ -98,7 +98,7 @@ const BlockModal = ({ isOpen, onClose }) => {
                 name="phone" // ★ name 속성 추가
                 value={formData.phone}
                 onChange={handleChange}
-                placeholder="전화번호 입력 (- 없이 입력)"
+                placeholder="전화번호 입력 (- 없이 숫자만 입력)"
                 className="w-full text-sm outline-none placeholder-gray-400 text-gray-800"
               />
             </div>
@@ -113,7 +113,7 @@ const BlockModal = ({ isOpen, onClose }) => {
                 name="email" // ★ name 속성 추가
                 value={formData.email}
                 onChange={handleChange}
-                placeholder="이메일을 입력하세요"
+                placeholder="example@email.com"
                 className="w-full text-sm outline-none placeholder-gray-400 text-gray-800"
               />
             </div>

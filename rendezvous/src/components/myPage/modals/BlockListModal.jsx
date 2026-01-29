@@ -15,7 +15,7 @@ const BlockListModal = ({ isOpen, onClose }) => {
   // 목록 조회 함수 (수정본)
   const getBlockList = async () => {
     try {
-      const response = await axios.get("/api/block/list");
+      const response = await axios.get("http://localhost/api/block/list");
 
       console.log("서버 응답 데이터:", response.data); // F12 콘솔 찍어봐라 뭐가 오는지
 
@@ -37,9 +37,8 @@ const BlockListModal = ({ isOpen, onClose }) => {
     if (!window.confirm("정말 차단을 해제하시겠습니까?")) return;
 
     try {
-      // 백엔드 Controller: @DeleteMapping("/api/block/delete")
       // DELETE 요청은 body를 보낼 때 { data: { ... } } 형태로 감싸야 함
-      const response = await axios.delete("/api/block/delete", {
+      const response = await axios.delete("http://localhost/api/block/delete", {
         data: { blockId: blockId },
       });
 
