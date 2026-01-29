@@ -100,6 +100,7 @@ export default function AiManager() {
       const result = await chatSessionRef.current.sendMessage(userMsg);
       addMessage(result.response.text(), "ai");
     } catch (error) {
+      console.log(error);
       addMessage("⚠️ 전송 실패", "ai");
     } finally {
       setIsLoading(false);
