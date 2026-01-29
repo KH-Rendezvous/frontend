@@ -8,21 +8,22 @@ import {
   Phone,
   Calendar,
   Globe,
-  MessageCircle,
   Share2,
   Navigation,
 } from "lucide-react";
 import axios from "axios";
+// ★ [수정 1] MapMarker를 추가로 불러옵니다.
+import { Map, MapMarker } from "react-kakao-maps-sdk";
 
 const PlacesDetail = () => {
-  const { id } = useParams(); // URL에서 infoNo 가져오기
+  const { id } = useParams();
   const navigate = useNavigate();
   const topRef = useRef(null);
 
   const [place, setPlace] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // [API 호출] 상세 정보 가져오기
+  // 1. 데이터 로딩
   useEffect(() => {
     if (topRef.current) {
       topRef.current.scrollIntoView({ behavior: "auto", block: "start" });
@@ -30,9 +31,7 @@ const PlacesDetail = () => {
 
     const fetchDetail = async () => {
       try {
-        const response = await axios.get(
-          `http://localhost:8080/api/places/${id}`
-        );
+        const response = await axios.get(`http://localhost/api/places/${id}`);
         setPlace(response.data);
       } catch (error) {
         console.error("상세 정보 로딩 실패:", error);
@@ -46,16 +45,29 @@ const PlacesDetail = () => {
 
   if (loading)
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading...
+      <div className="min-h-screen flex items-center justify-center text-gray-500 font-medium">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-[#FF4458] border-t-transparent rounded-full animate-spin"></div>
+          Loading...
+        </div>
       </div>
     );
+
   if (!place)
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center text-gray-500">
         정보를 찾을 수 없습니다.
       </div>
     );
+
+  const handleNavigation = () => {
+    const query = place.address || place.infoName;
+    window.open(`https://map.naver.com/v5/search/${query}`, "_blank");
+  };
+
+  // 좌표 데이터 안전하게 변환
+  const lat = place.lat ? parseFloat(place.lat) : 37.5665;
+  const lng = place.lng ? parseFloat(place.lng) : 126.978;
 
   return (
     <div ref={topRef} className="w-full min-h-screen bg-white pb-20">
@@ -65,18 +77,18 @@ const PlacesDetail = () => {
           src={place.imgUrl || "/placeholder.png"}
           alt={place.infoName}
           className="w-full h-full object-cover"
-          onError={(e) =>
-            (e.target.src =
-              "https://via.placeholder.com/1920x1080?text=No+Image")
-          }
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = "https://placehold.co/1920x1080?text=No+Image";
+          }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/30 pointer-events-none" />
 
         <div className="absolute top-0 left-0 w-full p-6 z-10">
           <div className="max-w-7xl mx-auto">
             <button
               onClick={() => navigate(-1)}
-              className="w-12 h-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all hover:-translate-x-1"
+              className="w-12 h-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all hover:-translate-x-1 cursor-pointer"
             >
               <ChevronLeft size={28} />
             </button>
@@ -86,20 +98,26 @@ const PlacesDetail = () => {
         <div className="absolute bottom-0 left-0 w-full p-6 md:p-10">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-wrap items-center gap-3 mb-4">
+              <div className="bg-black/50 backdrop-blur-md text-white border border-white/20 px-3 py-1.5 rounded-full text-sm font-bold">
+                {place.locationType === "CAFE" ? "☕ 카페" : "🍴 맛집"}
+              </div>
               <div className="bg-[#FF4458] text-white px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-1 shadow-lg animate-bounce-slow">
-                <Sparkles size={14} fill="currentColor" /> AI Match 98%
+                <Sparkles size={14} fill="currentColor" /> AI 추천 장소
               </div>
               {place.aiTags &&
-                place.aiTags.split(" ").map((t, i) => (
-                  <span
-                    key={i}
-                    className="px-3 py-1.5 bg-black/40 backdrop-blur-md text-white border border-white/20 rounded-full text-xs font-bold"
-                  >
-                    {t}
-                  </span>
-                ))}
+                place.aiTags
+                  .replace(/,/g, " ")
+                  .split(" ")
+                  .filter((t) => t.startsWith("#"))
+                  .map((t, i) => (
+                    <span
+                      key={i}
+                      className="px-3 py-1.5 bg-white/20 backdrop-blur-md text-white border border-white/20 rounded-full text-xs font-bold"
+                    >
+                      {t}
+                    </span>
+                  ))}
             </div>
-
             <h1 className="text-4xl md:text-6xl font-black text-white mb-2 drop-shadow-lg leading-tight">
               {place.infoName}
             </h1>
@@ -112,38 +130,41 @@ const PlacesDetail = () => {
 
       {/* 2. Content Body */}
       <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col lg:flex-row gap-16">
-        {/* 왼쪽 정보 영역 */}
         <div className="flex-1 flex flex-col gap-12">
-          {/* AI Curator's Note */}
           <section className="bg-pink-50/60 rounded-[32px] p-8 md:p-12 relative border border-pink-100 shadow-sm">
-            <Sparkles
-              className="absolute top-10 right-10 text-[#FF4458]/20"
-              size={80}
-            />
             <h3 className="text-[#FF4458] font-bold text-sm mb-6 flex items-center gap-2 uppercase tracking-wider">
               <span className="w-2.5 h-2.5 bg-[#FF4458] rounded-full animate-pulse"></span>
               AI Curator's Note
             </h3>
             <p className="text-xl md:text-2xl font-bold text-gray-800 leading-relaxed font-serif break-keep">
-              "
+              "{" "}
               {place.aiNote ||
-                "이곳은 당신을 위한 특별한 경험을 제공하는 장소입니다."}
+                "이곳은 당신을 위한 특별한 경험을 제공하는 장소입니다."}{" "}
               "
             </p>
             <p className="mt-8 pt-8 border-t border-pink-200/60 text-gray-600 leading-loose text-sm md:text-base">
               {place.infoBody
-                ? place.infoBody
-                    .replace(/(<([^>]+)>)/gi, "")
-                    .substring(0, 300) +
-                  (place.infoBody.length > 300 ? "..." : "")
+                ? place.infoBody.replace(/(<([^>]+)>)/gi, "").substring(0, 300)
                 : "상세 정보가 없습니다."}
             </p>
           </section>
 
-          {/* 상세 정보 */}
           <section>
             <h3 className="text-2xl font-bold text-gray-900 mb-6">Info</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            {/* ★ [수정 2] 지도 및 마커 렌더링 */}
+            <section className="w-full h-[350px] bg-gray-100 rounded-3xl relative overflow-hidden border border-gray-200 z-0">
+              <Map
+                center={{ lat: lat, lng: lng }}
+                style={{ width: "100%", height: "100%" }}
+                level={3}
+              >
+                {/* 여기에 마커를 넣으면 됩니다! */}
+                <MapMarker position={{ lat: lat, lng: lng }} />
+              </Map>
+            </section>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-10">
               <InfoItem
                 icon={<Clock />}
                 title="영업시간"
@@ -162,52 +183,36 @@ const PlacesDetail = () => {
                 link={place.homepage}
               />
             </div>
-          </section>
 
-          {/* 지도 위치 */}
-          <section>
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">위치</h3>
-            <div className="w-full h-[300px] bg-gray-200 rounded-3xl flex items-center justify-center relative overflow-hidden">
-              {/* 추후 지도 API 연동 시 이곳에 Map 컴포넌트 배치 */}
-              <MapPin size={48} className="text-gray-400 mb-2" />
-              <span className="text-gray-500 font-bold">
-                지도 영역 (좌표: {place.lat}, {place.lng})
-              </span>
-              <button className="absolute bottom-4 right-4 bg-gray-900 text-white px-4 py-2 rounded-full flex items-center gap-2">
-                <Navigation size={16} /> 길찾기
-              </button>
-            </div>
-            <div className="mt-4 inline-flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg text-sm text-gray-600 font-medium">
-              <span>🅿️ 주차 정보:</span>
-              <span>{place.parking || "정보 없음"}</span>
+            <div className="mt-4 flex flex-wrap justify-between items-center gap-4">
+              <div className="inline-flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg text-sm text-gray-600 font-medium">
+                <span>🅿️ 주차 정보:</span>
+                <span>{place.parking || "정보 없음"}</span>
+              </div>
             </div>
           </section>
         </div>
 
-        {/* 오른쪽 사이드바 */}
+        {/* 사이드바 */}
         <div className="lg:w-[380px] shrink-0">
-          <div className="sticky top-10 flex flex-col gap-6">
+          <div className="sticky top-24 flex flex-col gap-6">
             <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50">
               <h4 className="font-bold text-gray-800 text-lg mb-4">
                 함께 가고 싶다면?
               </h4>
               <p className="text-sm text-gray-500 mb-6">
-                상대방에게 이 장소를 공유해보세요. <br /> AI가 두 분의 취향
-                일치도를 분석해드립니다.
+                상대방에게 이 장소를 공유해보세요.
               </p>
-
-              <button className="w-full py-4 bg-[#EE4B6F] hover:bg-[#d63a5c] text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-pink-200 transition-all flex items-center justify-center gap-2">
-                <MessageCircle size={20} /> 이 장소 공유하기
+              <button className="w-full py-4 bg-[#EE4B6F] hover:bg-[#d63a5c] text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-pink-200 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                <Share2 size={20} /> 이 장소 공유하기
               </button>
-
               <button
                 onClick={() => navigate(-1)}
-                className="w-full mt-3 py-4 bg-white border border-gray-200 text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-2xl font-bold text-base transition-all"
+                className="w-full mt-3 py-4 bg-white border border-gray-200 text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-2xl font-bold text-base transition-all cursor-pointer"
               >
                 다른 장소 더보기
               </button>
             </div>
-
             <div className="bg-yellow-50 p-6 rounded-3xl border border-yellow-100">
               <h4 className="font-bold text-yellow-800 mb-2 flex items-center gap-2">
                 <span className="text-xl">💡</span> 방문 꿀팁
@@ -225,10 +230,11 @@ const PlacesDetail = () => {
   );
 };
 
-// 정보 아이템 컴포넌트
 const InfoItem = ({ icon, title, desc, link }) => (
-  <div className="p-6 border border-gray-100 rounded-2xl flex items-start gap-4 bg-white hover:border-pink-200 hover:shadow-sm transition-all">
-    <div className="text-gray-400 mt-1 bg-gray-50 p-2 rounded-full">{icon}</div>
+  <div className="p-6 border border-gray-100 rounded-2xl flex items-start gap-4 bg-white hover:border-pink-200 hover:shadow-sm transition-all group">
+    <div className="text-gray-400 mt-1 bg-gray-50 p-2 rounded-full group-hover:bg-pink-50 group-hover:text-pink-500 transition-colors">
+      {icon}
+    </div>
     <div className="flex-1 overflow-hidden">
       <p className="font-bold text-gray-900 mb-1 text-sm">{title}</p>
       {link ? (
@@ -238,7 +244,7 @@ const InfoItem = ({ icon, title, desc, link }) => (
           rel="noreferrer"
           className="text-blue-500 hover:underline text-sm truncate block"
         >
-          {desc}
+          {desc || "링크 바로가기"}
         </a>
       ) : (
         <p className="text-gray-600 text-sm break-keep">
