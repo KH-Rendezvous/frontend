@@ -1,18 +1,133 @@
-import React from "react";
+import React, { useState } from "react";
 import HeaderComponent from "./HeaderComponent";
 import { Link } from "react-router-dom";
 import FooterComponent from "./FooterComponent";
+import { axiosApi } from "../../api/axiosAPI";
 
 const HomeComponent = () => {
+  const [modal, setModal] = useState(false);
+  // 문의 폼 상태 관리
+  const [formData, setFormData] = useState({
+    email: "",
+    title: "",
+    content: "",
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    console.log("문의 내용:", formData);
+    const resp = await axiosApi.post("/main/support", formData);
+
+    if (resp.status === 200) {
+      alert("문의가 접수되었습니다. 입력하신 이메일로 답변을 보내드릴게요!");
+    } else {
+      alert("문의 접수 실패...");
+    }
+    setModal(false);
+    setFormData({ email: "", title: "", content: "" });
+  };
   return (
     <div className="flex flex-col min-h-screen">
       <HeaderComponent />
+      {modal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setModal(false)}
+          ></div>
 
-      {/* 메인 컨텐츠 영역 */}
+          <div className="relative bg-white w-full max-w-lg rounded-[2rem] p-8 shadow-2xl animate-fadeInUp">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-800">고객 지원</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  궁금한 내용을 남겨주세요.
+                </p>
+              </div>
+              <button
+                onClick={() => setModal(false)}
+                className="text-gray-400 hover:text-gray-600 cursor-pointer"
+              >
+                <svg
+                  className="w-8 h-8"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">
+                  답변 받을 이메일
+                </label>
+                <input
+                  required
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="example@email.com"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#EE4B6F] focus:ring-2 focus:ring-[#EE4B6F]/20 outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">
+                  문의 제목
+                </label>
+                <input
+                  required
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleChange}
+                  placeholder="제목을 입력해 주세요"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#EE4B6F] focus:ring-2 focus:ring-[#EE4B6F]/20 outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">
+                  문의 내용
+                </label>
+                <textarea
+                  required
+                  name="content"
+                  value={formData.content}
+                  onChange={handleChange}
+                  rows="5"
+                  placeholder="상세한 내용을 적어주시면 빠른 확인이 가능합니다."
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#EE4B6F] focus:ring-2 focus:ring-[#EE4B6F]/20 outline-none transition-all resize-none"
+                ></textarea>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-[#EE4B6F] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#d63a5c] transition-all shadow-lg shadow-[#EE4B6F]/20"
+              >
+                문의 보내기
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       <main className="flex-grow w-full max-w-[1280px] mx-auto px-6 md:px-10">
-        {/* 1. 히어로 섹션 (메인 배너) */}
         <section className="flex flex-col-reverse lg:flex-row justify-between items-center py-16 lg:py-24 gap-10 lg:gap-20">
-          {/* 텍스트 영역 */}
           <div className="flex flex-col gap-8 text-center lg:text-left items-center lg:items-start flex-1 animate-fadeInUp">
             <div className="space-y-2">
               <p className="text-3xl md:text-[50px] font-bold leading-tight text-gray-800">
@@ -38,9 +153,7 @@ const HomeComponent = () => {
             </Link>
           </div>
 
-          {/* 이미지 영역 */}
           <div className="flex-1 w-full max-w-[500px] lg:max-w-none relative animate-float">
-            {/* 이미지 배경 장식 (원형) */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[110%] bg-[#EE4B6F]/5 rounded-full blur-3xl -z-10"></div>
             <img
               src="/people.png"
@@ -50,7 +163,6 @@ const HomeComponent = () => {
           </div>
         </section>
 
-        {/* 2. 기능 소개 섹션 (Cards) */}
         <section className="py-20">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-800">
@@ -62,10 +174,8 @@ const HomeComponent = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Card 1 */}
             <div className="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 flex flex-col items-center text-center group">
               <div className="w-16 h-16 bg-[#fff0f3] rounded-2xl flex items-center justify-center mb-6 group-hover:bg-[#EE4B6F] transition-colors duration-300">
-                {/* 하트 아이콘 SVG */}
                 <svg
                   className="w-8 h-8 text-[#EE4B6F] group-hover:text-white transition-colors"
                   fill="none"
@@ -93,10 +203,8 @@ const HomeComponent = () => {
               </p>
             </div>
 
-            {/* Card 2 */}
             <div className="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 flex flex-col items-center text-center group">
               <div className="w-16 h-16 bg-[#fff0f3] rounded-2xl flex items-center justify-center mb-6 group-hover:bg-[#EE4B6F] transition-colors duration-300">
-                {/* 봇/메시지 아이콘 SVG */}
                 <svg
                   className="w-8 h-8 text-[#EE4B6F] group-hover:text-white transition-colors"
                   fill="none"
@@ -124,10 +232,8 @@ const HomeComponent = () => {
               </p>
             </div>
 
-            {/* Card 3 */}
             <div className="bg-white p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 flex flex-col items-center text-center group">
               <div className="w-16 h-16 bg-[#fff0f3] rounded-2xl flex items-center justify-center mb-6 group-hover:bg-[#EE4B6F] transition-colors duration-300">
-                {/* 지도 핀 아이콘 SVG */}
                 <svg
                   className="w-8 h-8 text-[#EE4B6F] group-hover:text-white transition-colors"
                   fill="none"
@@ -164,10 +270,8 @@ const HomeComponent = () => {
           </div>
         </section>
 
-        {/* 3. 하단 CTA (Call To Action) 섹션 */}
         <section className="py-20">
           <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-[40px] px-6 py-16 flex flex-col items-center justify-center gap-8 shadow-inner relative overflow-hidden">
-            {/* 배경 장식용 원 */}
             <div className="absolute top-0 left-0 w-64 h-64 bg-[#EE4B6F]/5 rounded-full blur-3xl"></div>
             <div className="absolute bottom-0 right-0 w-64 h-64 bg-[#EE4B6F]/5 rounded-full blur-3xl"></div>
 
@@ -189,14 +293,10 @@ const HomeComponent = () => {
             </Link>
           </div>
         </section>
-        <Link
-          to="/qna?mode=guest"
-          className="fixed bottom-8 right-8 z-50 group flex items-center gap-3"
+        <button
+          onClick={() => setModal(true)}
+          className="fixed bottom-8 right-8 z-50 group flex items-center gap-3 cursor-pointer"
         >
-          {/* 호버 시 나타나는 말풍선 */}
-          <div className="bg-white px-4 py-2 rounded-2xl shadow-xl border border-pink-50 text-[#EE4B6F] text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden md:block">
-            로그인이 안 되시나요?
-          </div>
           <div className="w-16 h-16 bg-[#EE4B6F] text-white rounded-full flex items-center justify-center shadow-[0_8px_25px_rgba(238,75,111,0.4)] hover:scale-110 active:scale-95 transition-all duration-300">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -213,7 +313,7 @@ const HomeComponent = () => {
               />
             </svg>
           </div>
-        </Link>
+        </button>
       </main>
       <FooterComponent />
     </div>

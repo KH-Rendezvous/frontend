@@ -29,9 +29,7 @@ const SideBar = () => {
         <QnaModal isOpen={true} onClose={() => setQnaStatus(false)} />
       )}
       <aside className="w-[360px] h-screen bg-white border-r flex flex-col p-6 overflow-y-auto custom-scrollbar">
-        {/* 로고 및 상단 탭 */}
         <div className="flex flex-col items-center mb-8">
-          {/* 로고 영역: 높이를 80px(h-20급)로 키우고 마진을 조정했습니다. */}
           <div
             className="mb-12 px-1 cursor-pointer"
             onClick={() => (window.location.href = "/")}
@@ -58,7 +56,6 @@ const SideBar = () => {
           </div>
         </div>
 
-        {/* 4. 서포터 영역 */}
         <div className="pt-6 border-gray-50 space-y-2">
           <p className="text-[10px] font-bold text-gray-300 mb-2 px-1 uppercase tracking-tighter italic">
             Support for you

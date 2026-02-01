@@ -14,25 +14,20 @@ import axios from "axios";
 const Places = () => {
   const navigate = useNavigate();
 
-  // 1. 상태 관리
   const [places, setPlaces] = useState([]); // 서버 데이터
   const [loading, setLoading] = useState(true);
 
-  // 필터 데이터 (서버에서 받아온 시/구 목록)
   const [locations, setLocations] = useState({});
 
-  // 사용자 선택 상태
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [category, setCategory] = useState("ALL"); // ALL, RESTAURANT, CAFE
   const [selectedTags, setSelectedTags] = useState([]);
 
-  // 페이지네이션
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
   const pageGroupSize = 10;
 
-  // 태그 목록
   const recommendTags = [
     "#분위기좋은",
     "#데이트",
@@ -44,7 +39,6 @@ const Places = () => {
     "#이색데이트",
   ];
 
-  // 2. [초기화] 지역 필터 옵션 가져오기
   useEffect(() => {
     axios
       .get("http://localhost:80/api/places/filters")
@@ -52,7 +46,6 @@ const Places = () => {
       .catch((err) => console.error("지역 목록 로딩 실패:", err));
   }, []);
 
-  // 3. [검색] 필터 변경 시 데이터 조회
   useEffect(() => {
     const fetchPlaces = async () => {
       try {
@@ -82,15 +75,9 @@ const Places = () => {
     fetchPlaces();
   }, [selectedCity, selectedDistrict, category, selectedTags]);
 
-  // 핸들러
   const handleCityChange = (e) => {
     setSelectedCity(e.target.value);
     setSelectedDistrict("");
-  };
-
-  const toggleTag = (tag) => {
-    if (selectedTags.includes(tag)) setSelectedTags([]);
-    else setSelectedTags([tag]);
   };
 
   const handlePageChange = (pageNumber) => {
@@ -102,7 +89,6 @@ const Places = () => {
     navigate(`/places/${id}`);
   };
 
-  // 페이지네이션 계산
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = places.slice(indexOfFirstItem, indexOfLastItem);
@@ -113,7 +99,6 @@ const Places = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-12 px-4">
-      {/* 필터 섹션 */}
       <div className="w-full max-w-6xl bg-white rounded-3xl shadow-sm border border-gray-100 p-8 mb-12">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-2 flex items-center justify-center gap-2">
@@ -124,7 +109,6 @@ const Places = () => {
 
         <div className="flex flex-col md:flex-row gap-6 items-start">
           <div className="flex gap-2 w-full md:w-auto shrink-0">
-            {/* 시/도 선택 */}
             <select
               value={selectedCity}
               onChange={handleCityChange}
@@ -138,7 +122,6 @@ const Places = () => {
               ))}
             </select>
 
-            {/* 구/군 선택 */}
             <select
               value={selectedDistrict}
               onChange={(e) => setSelectedDistrict(e.target.value)}
@@ -154,7 +137,6 @@ const Places = () => {
                 ))}
             </select>
 
-            {/* 업종 선택 */}
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -186,7 +168,6 @@ const Places = () => {
         </div>
       </div>
 
-      {/* 리스트 섹션 */}
       <div className="w-full max-w-6xl mb-16">
         <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2 px-1">
           <span className="text-2xl">
@@ -222,7 +203,7 @@ const Places = () => {
               const p = item.place || item;
               return (
                 <div
-                  key={p.infoNo} // ★ 고유 키 필수
+                  key={p.infoNo}
                   className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 transition-all cursor-pointer flex flex-col h-full"
                   onClick={() => handleCardClick(p.infoNo)}
                 >
@@ -232,19 +213,19 @@ const Places = () => {
                       alt={p.infoName}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       onError={(e) => {
-                        e.target.onerror = null; // ★ 핵심: 에러 루프 방지 (한 번만 실행하고 기능 끔)
+                        e.target.onerror = null;
                         e.target.src =
-                          "https://placehold.co/300x200?text=No+Image"; // 더 안정적인 이미지 서버로 변경
+                          "https://placehold.co/300x200?text=No+Image";
                       }}
                     />
                     <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-bold text-white">
                       {p.locationType === "CAFE" ? "☕ 카페" : "🍴 맛집"}
                     </div>
-                    {item.matchScore && (
+                    {/* {item.matchScore && (
                       <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg shadow-sm text-[10px] font-bold text-[#FF4458]">
                         {item.matchScore}% 일치
                       </div>
-                    )}
+                    )} */}
                   </div>
                   <div className="p-5 flex-1 flex flex-col justify-between">
                     <div>
@@ -284,7 +265,6 @@ const Places = () => {
         )}
       </div>
 
-      {/* 페이지네이션 (렌더링 부분 생략 없이 그대로 사용) */}
       {totalPages > 0 && (
         <div className="flex items-center justify-center gap-1.5 pb-12 select-none">
           <button
