@@ -12,7 +12,6 @@ import {
   Navigation,
 } from "lucide-react";
 import axios from "axios";
-// ★ [수정 1] MapMarker를 추가로 불러옵니다.
 import { Map, MapMarker } from "react-kakao-maps-sdk";
 
 const PlacesDetail = () => {
@@ -23,7 +22,6 @@ const PlacesDetail = () => {
   const [place, setPlace] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 1. 데이터 로딩
   useEffect(() => {
     if (topRef.current) {
       topRef.current.scrollIntoView({ behavior: "auto", block: "start" });
@@ -65,13 +63,11 @@ const PlacesDetail = () => {
     window.open(`https://map.naver.com/v5/search/${query}`, "_blank");
   };
 
-  // 좌표 데이터 안전하게 변환
   const lat = place.lat ? parseFloat(place.lat) : 37.5665;
   const lng = place.lng ? parseFloat(place.lng) : 126.978;
 
   return (
     <div ref={topRef} className="w-full min-h-screen bg-white pb-20">
-      {/* 1. Hero Section */}
       <div className="relative w-full h-[500px] md:h-[60vh]">
         <img
           src={place.imgUrl || "/placeholder.png"}
@@ -128,7 +124,6 @@ const PlacesDetail = () => {
         </div>
       </div>
 
-      {/* 2. Content Body */}
       <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col lg:flex-row gap-16">
         <div className="flex-1 flex flex-col gap-12">
           <section className="bg-pink-50/60 rounded-[32px] p-8 md:p-12 relative border border-pink-100 shadow-sm">
@@ -152,14 +147,12 @@ const PlacesDetail = () => {
           <section>
             <h3 className="text-2xl font-bold text-gray-900 mb-6">Info</h3>
 
-            {/* ★ [수정 2] 지도 및 마커 렌더링 */}
             <section className="w-full h-[350px] bg-gray-100 rounded-3xl relative overflow-hidden border border-gray-200 z-0">
               <Map
                 center={{ lat: lat, lng: lng }}
                 style={{ width: "100%", height: "100%" }}
                 level={3}
               >
-                {/* 여기에 마커를 넣으면 됩니다! */}
                 <MapMarker position={{ lat: lat, lng: lng }} />
               </Map>
             </section>
@@ -193,7 +186,6 @@ const PlacesDetail = () => {
           </section>
         </div>
 
-        {/* 사이드바 */}
         <div className="lg:w-[380px] shrink-0">
           <div className="sticky top-24 flex flex-col gap-6">
             <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50">
