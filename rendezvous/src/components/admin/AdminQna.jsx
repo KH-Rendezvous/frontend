@@ -152,8 +152,8 @@ const AdminQna = () => {
                       </span>
                     </div>
                     <div className="flex flex-col gap-1 text-sm text-gray-500">
-                      <span>닉네임: {selectedUser.memberNickname}</span>
-                      <span>이메일: {selectedUser.memberEmail}</span>
+                      <span>닉네임: {selectedUser.nickname}</span>
+                      <span>이메일: {selectedUser.email}</span>
                     </div>
                     <div className="bg-white p-4 rounded-lg border border-gray-200 text-gray-700 min-h-[100px] whitespace-pre-wrap">
                       {selectedUser.qnaContent}
