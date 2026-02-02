@@ -1,6 +1,7 @@
 import React, { useState } from "react";
+import axios from "axios";
 
-const DeleteAccountModal = ({ isOpen, onClose }) => {
+const DeleteAccountModal = ({ isOpen, onClose, memberNo }) => {
   const [isChecked, setIsChecked] = useState(false);
 
   // 모달 닫힐 때 체크박스 초기화
@@ -10,6 +11,28 @@ const DeleteAccountModal = ({ isOpen, onClose }) => {
   };
 
   if (!isOpen) return null;
+
+  const handleWithdraw = async () => {
+    if (!isChecked) return; // 체크 안 되어있으면 실행 안 함
+
+    try {
+      // 서버로 탈퇴 요청 (PUT)
+      const response = await axios.put("http://localhost/api/mypage/withdraw", {
+        memberNo: memberNo, // 받아온 회원 번호 전송
+      });
+
+      if (response.data > 0) {
+        alert("회원 탈퇴가 완료되었습니다.");
+        // 메인 페이지로 이동 (새로고침 효과로 로그아웃 처리 확실하게)
+        window.location.href = "/";
+      } else {
+        alert("탈퇴 처리에 실패했습니다. 다시 시도해 주세요.");
+      }
+    } catch (error) {
+      console.error("탈퇴 요청 에러:", error);
+      alert("서버 오류가 발생했습니다.");
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center">
@@ -116,11 +139,12 @@ const DeleteAccountModal = ({ isOpen, onClose }) => {
             취소
           </button>
           <button
+            onClick={handleWithdraw}
             disabled={!isChecked}
             className={`flex-[2] py-3.5 px-6 rounded-xl text-white font-bold shadow-lg transition-all duration-200
               ${
                 isChecked
-                  ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 hover:-translate-y-0.5"
+                  ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 hover:-translate-y-0.5 cursor-pointer"
                   : "bg-gray-300 cursor-not-allowed shadow-none"
               }`}
           >
