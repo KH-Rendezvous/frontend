@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import AdminUserManagement from "./AdminUserManagement";
 import AdminQna from "./AdminQna";
@@ -7,6 +7,10 @@ import AdminSupport from "./AdminSupport";
 import SideBar from "./SideBar";
 import AdminReportDetail from "./AdminReportDetail";
 import { Menu, X } from "lucide-react";
+import {
+  onMessageListener,
+  requestPermissionAndGetToken,
+} from "../../firebase";
 
 const AdminComponent = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -23,7 +27,17 @@ const AdminComponent = () => {
       ? `${baseStyle} bg-[#EE4B6F] text-white shadow-md transform scale-[1.02]`
       : `${baseStyle} bg-white text-gray-600 hover:bg-gray-50 border border-transparent hover:border-gray-100`;
   };
+  useEffect(() => {
+    console.log("AdminComponent 렌더링됨 - 토큰 발급 시도"); // 작동 확인용 로그
 
+    // 토큰 발급 함수 실행
+    requestPermissionAndGetToken();
+
+    // 알림 리스너 실행
+    onMessageListener().then((payload) => {
+      console.log("알림 옴:", payload);
+    });
+  }, []);
   return (
     <div className="flex flex-col lg:flex-row min-h-screen bg-[#F8F9FA]">
       {/* [모바일 헤더] */}
