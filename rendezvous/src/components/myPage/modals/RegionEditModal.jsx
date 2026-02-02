@@ -95,18 +95,6 @@ const RegionEditModal = ({ currentRegion, onClose, onSave }) => {
           {/* 검색어가 없을 때 기본 옵션 */}
           {!searchTerm && (
             <>
-              {/* 현 위치 (나중에 GPS 연동 필요하면 그때 구현) */}
-              <div
-                onClick={() =>
-                  onSave({ REGION_ID: 0, FULL_ADDR: "현 위치(GPS)" })
-                }
-                className="px-5 py-4 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors"
-              >
-                <span className="text-blue-600 text-sm font-medium">
-                  현 위치 근처 (GPS)
-                </span>
-              </div>
-
               {/* 비공개 */}
               <div
                 onClick={() => onSave({ REGION_ID: 0, FULL_ADDR: "비공개" })}

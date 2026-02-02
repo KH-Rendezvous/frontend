@@ -13,6 +13,12 @@ const ProfileImageGrid = ({ images, setImages, setDeleteList }) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+    if (file.size > MAX_SIZE) {
+      alert("이미지 크기는 5MB 이하여야 합니다.");
+      return;
+    }
+
     if (!file.type.startsWith("image/")) {
       alert("이미지 파일만 업로드 가능합니다.");
       return;
@@ -118,7 +124,7 @@ const ProfileImageGrid = ({ images, setImages, setDeleteList }) => {
 
           {/* 뱃지 영역 */}
           <div
-            className={`absolute -bottom-2 -right-2 w-6 h-6 flex items-center justify-center rounded-full shadow-sm border-2 border-white z-50
+            className={`absolute -bottom-2 -right-2 w-6 h-6 flex items-center justify-center rounded-full shadow-sm border-2 border-white z-40
              ${index === 0 ? "bg-[#EE4B6F]" : "bg-gray-400"} text-white`}
           >
             {index === 0 ? (
