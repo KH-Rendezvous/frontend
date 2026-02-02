@@ -14,13 +14,8 @@ import DeleteAccountModal from "../modals/DeleteAccountModal";
 const MyPageSidebar = () => {
   const navigate = useNavigate();
   const memberNo = 1;
-
-  // 거리 초기값 100 (제한 없음)
   const [distance, setDistance] = useState(100);
-
-  // 연령대 초기값 (19 ~ 50: 제한 없음)
   const [ageRange, setAgeRange] = useState([19, 50]);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBlockListModalOpen, setIsBlockListModalOpen] = useState(false);
   const [isQnaModalOpen, setIsQnaModalOpen] = useState(false);
@@ -64,7 +59,6 @@ const MyPageSidebar = () => {
     const minAge = value[0];
     let maxAge = value[1];
 
-    // ★ [핵심] 50세(최대)면 null로 변환 (상한선 없음)
     const payloadMaxAge = maxAge === 50 ? null : maxAge;
 
     console.log(
@@ -75,7 +69,7 @@ const MyPageSidebar = () => {
       const response = await axios.put("http://localhost/api/mypage/age", {
         memberNo: memberNo,
         targetMinAge: minAge,
-        targetMaxAge: payloadMaxAge, // null 또는 숫자 전송
+        targetMaxAge: payloadMaxAge,
       });
 
       if (response.data.result === "success") {
@@ -115,11 +109,9 @@ const MyPageSidebar = () => {
 
     console.log("변경할 공개범위:", newCode);
 
-    // ★ [핵심] 일단 화면부터 바꿈 (선조치)
     setVisibility(newCode);
 
     try {
-      // 그 다음에 서버에 전송 (후보고)
       const response = await axios.put(
         "http://localhost/api/mypage/visibility",
         {
@@ -131,14 +123,25 @@ const MyPageSidebar = () => {
       if (response.data.result === "success") {
         console.log("✅ 공개범위 서버 저장 완료");
       } else {
-        // 실패하면? 다시 원래대로 돌려놓음 (롤백)
         alert("저장 실패");
         setVisibility(oldCode);
       }
     } catch (error) {
       console.error("❌ 공개범위 저장 에러:", error);
-      // 에러 나도 롤백
       setVisibility(oldCode);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (!window.confirm("로그아웃 하시겠습니까?")) return;
+
+    try {
+      await axios.get("http://localhost/api/member/logout");
+
+      alert("로그아웃 되었습니다.");
+      navigate("/");
+    } catch (error) {
+      console.error("로그아웃 실패", error);
     }
   };
 
@@ -350,7 +353,10 @@ const MyPageSidebar = () => {
           >
             QnA
           </button>
-          <button className="w-full py-3.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 bg-white shadow-sm hover:shadow-md hover:bg-gray-50 transition-all">
+          <button
+            onClick={handleLogout}
+            className="w-full py-3.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 bg-white shadow-sm hover:shadow-md hover:bg-gray-50 transition-all"
+          >
             로그아웃
           </button>
           <button
@@ -377,10 +383,12 @@ const MyPageSidebar = () => {
       <QnaModal
         isOpen={isQnaModalOpen}
         onClose={() => setIsQnaModalOpen(false)}
+        memberNo={memberNo}
       />
       <DeleteAccountModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
+        memberNo={memberNo}
       />
     </aside>
   );

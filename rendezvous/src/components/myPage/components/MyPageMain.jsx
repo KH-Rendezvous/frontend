@@ -8,6 +8,7 @@ import InterestEditModal from "../modals/InterestEditModal";
 import SchoolEditModal from "../modals/SchoolEditModal";
 import RegionEditModal from "../modals/RegionEditModal";
 import ProfileListItem from "../components/ProfileListItem";
+import ProfileImageGrid from "../components/ProfileImageGrid";
 
 // 관심사 포맷팅 함수
 const formatInterests = (items) => {
@@ -26,6 +27,8 @@ const MyPageMain = () => {
   const [showSchoolModal, setShowSchoolModal] = useState(false);
   const [showRegionModal, setShowRegionModal] = useState(false);
   const [masterCodes, setMasterCodes] = useState([]);
+  const [profileImages, setProfileImages] = useState(Array(6).fill(null));
+  const [deleteList, setDeleteList] = useState([]);
 
   const [userData, setUserData] = useState({
     nickname: "",
@@ -73,6 +76,29 @@ const MyPageMain = () => {
         if (profileRes.data.result === "success") {
           const dbData = profileRes.data.data;
           setOriginalNickname(dbData.nickname || "");
+
+          //DB 이미지 데이터를 State에 매핑하는 로직
+          const newImages = Array(6).fill(null);
+          if (dbData.profileList && dbData.profileList.length > 0) {
+            dbData.profileList.forEach((photo) => {
+              const idx = photo.photoOrder - 1;
+              if (idx >= 0 && idx < 6) {
+                newImages[idx] = {
+                  id: photo.photoId,
+                  url: "http://localhost" + photo.photoUrl + photo.renameName,
+                  file: null,
+                  order: photo.photoOrder,
+                };
+              }
+            });
+          }
+          setProfileImages(newImages);
+
+          setDeleteList([]);
+
+          const genderCode = dbData.gender
+            ? String(dbData.gender).trim().toUpperCase()
+            : "";
 
           setUserData({
             nickname: dbData.nickname || "",
@@ -238,26 +264,31 @@ const MyPageMain = () => {
 
   // [수정하기] 버튼 클릭 시 (백엔드 전송)
   const handleFinalSubmit = async () => {
+    const currentPhotoCount = profileImages.filter(
+      (img) => img !== null,
+    ).length;
+    if (currentPhotoCount <= 1) {
+      alert("프로필 사진은 최소 2장 이상 등록해야 합니다.");
+      return;
+    }
+
     if (userData.nickname.trim().length < 2) {
       alert("닉네임은 2글자 이상 입력해주세요.");
       return;
     }
 
+    // 닉네임 중복 체크
     if (userData.nickname !== originalNickname) {
       try {
         const checkRes = await axios.get(
           "http://localhost/api/mypage/nickname/check",
-          {
-            params: { nickname: userData.nickname },
-          },
+          { params: { nickname: userData.nickname } },
         );
-
         if (checkRes.data > 0) {
           alert("이미 사용 중인 닉네임입니다.");
-          return; // 함수 종료
+          return;
         }
       } catch (error) {
-        console.error("중복 체크 실패:", error);
         alert("서버 통신 오류");
         return;
       }
@@ -266,9 +297,12 @@ const MyPageMain = () => {
     if (!window.confirm("프로필을 수정하시겠습니까?")) return;
 
     try {
-      // DTO 매핑용 데이터 객체 생성
-      const payload = {
-        memberNo: 1,
+      // 1. FormData 생성
+      const formData = new FormData();
+
+      // 2. 텍스트 데이터 포장
+      const textData = {
+        memberNo: 1, // 테스트용 번호
         nickname: userData.nickname,
         intro: userData.intro,
         mbti: userData.mbti,
@@ -287,14 +321,39 @@ const MyPageMain = () => {
         schNo: userData.schNo ? userData.schNo : null,
       };
 
-      const response = await axios.put(
+      // JSON 객체를 Blob으로 변환하여 추가 (Content-Type: application/json 명시)
+      formData.append(
+        "profileText",
+        new Blob([JSON.stringify(textData)], { type: "application/json" }),
+      );
+
+      // 3. 이미지 파일 추가
+      profileImages.forEach((img, index) => {
+        // 새 파일이 있는 경우에만 'images' 키로 추가
+        if (img && img.file) {
+          formData.append("images", img.file);
+          // 순서 정보도 같이 보냄 (파일명 매칭용 또는 DB 저장용)
+          formData.append("orders", index + 1);
+        }
+      });
+
+      if (deleteList.length > 0) {
+        deleteList.forEach((id) => {
+          formData.append("deleteList", id);
+        });
+      }
+
+      // 4. 서버 전송 (Multipart)
+      const response = await axios.post(
         "http://localhost/api/mypage/profile",
-        payload,
+        formData,
+        { headers: { "Content-Type": undefined } },
       );
 
       if (response.data.result === "success") {
         alert("프로필이 성공적으로 수정되었습니다.");
         setActiveTab("preview");
+        setOriginalNickname(userData.nickname);
       } else {
         alert("수정 실패");
       }
@@ -454,30 +513,13 @@ const MyPageMain = () => {
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 md:p-14">
         {activeTab === "edit" ? (
           <>
-            {/* 사진 그리드 (추후 컴포넌트 분리 권장) */}
-            <div className="grid grid-cols-3 gap-3 mb-2">
-              {[1, 2, 3, 4, 5, 6].map((num) => (
-                <div
-                  key={num}
-                  className="relative aspect-[3/4] bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center overflow-visible group cursor-pointer hover:border-gray-300 transition-colors"
-                >
-                  {num <= 2 ? (
-                    <img
-                      src={`https://placehold.co/150x200?text=Photo${num}`}
-                      alt="profile"
-                      className="w-full h-full object-cover rounded-xl"
-                    />
-                  ) : (
-                    <span className="text-gray-300 text-2xl font-light">+</span>
-                  )}
-                  <div className="absolute -bottom-2 -right-2 bg-[#EE4B6F] text-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm border-2 border-white z-10">
-                    <span className="text-sm font-bold leading-none mb-0.5">
-                      +
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {/* 복잡한 이미지 그리드 코드를 컴포넌트 하나로 대체 */}
+            <ProfileImageGrid
+              images={profileImages}
+              setImages={setProfileImages}
+              setDeleteList={setDeleteList}
+            />
+
             <p className="text-xs text-center text-gray-500 mb-10">
               첫 번째 사진이 당신의 첫인상을 결정합니다! 나를 가장 잘 나타내는
               <br /> 사진을 첫 번째 대표 사진으로 설정해 보세요.
@@ -585,9 +627,9 @@ const MyPageMain = () => {
           </>
         ) : (
           /* 미리보기 탭 내용*/
-          <div className="flex justify-center">
-            <ProfilePreview data={userData} />
-          </div>
+          <ProfilePreview
+            data={{ ...userData, profileImages: profileImages }}
+          />
         )}
       </div>
 

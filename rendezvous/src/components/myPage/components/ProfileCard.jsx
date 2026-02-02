@@ -38,14 +38,15 @@ const ProfileCard = ({ userData }) => {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // 더미 사진 데이터
-  const photos = [
-    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-    "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-    "https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
-  ];
+  // 1. 실제 이미지 데이터 추출 (빈 슬롯 제거)
+  const validImages = userData.profileImages
+    ? userData.profileImages.filter((img) => img !== null).map((img) => img.url)
+    : [];
 
-  // [수정] '키'는 기본 정보로 이동했으므로 여기서 제거
+  // 2. 이미지가 하나도 없으면 기본 이미지 사용
+  const photos =
+    validImages.length > 0 ? validImages : ["/images/default_profile.png"];
+
   const aboutMe = [
     { label: "애정표현 스타일", value: userData.affection, icon: "☘️" },
     { label: "학력", value: userData.education, icon: "🎓" },
@@ -75,19 +76,23 @@ const ProfileCard = ({ userData }) => {
     <div className="w-full max-w-[400px] bg-white rounded-3xl overflow-hidden shadow-xl border border-gray-200 mx-auto relative group">
       {/* --- [A] 상단 사진 슬라이더 --- */}
       <div className="relative w-full h-[520px] bg-gray-800">
-        {/* 인디케이터 */}
-        <div className="absolute top-3 left-0 w-full px-2 z-20 flex gap-1">
-          {photos.map((_, idx) => (
-            <div
-              key={idx}
-              className="h-1 rounded-full flex-1 bg-white/30 overflow-hidden"
-            >
+        {/* 인디케이터 (사진이 2장 이상일 때만 표시) */}
+        {photos.length > 1 && (
+          <div className="absolute top-3 left-0 w-full px-2 z-20 flex gap-1">
+            {photos.map((_, idx) => (
               <div
-                className={`h-full bg-white transition-all duration-300 ${idx === currentIdx ? "opacity-100" : "opacity-0"}`}
-              />
-            </div>
-          ))}
-        </div>
+                key={idx}
+                className="h-1 rounded-full flex-1 bg-white/30 overflow-hidden"
+              >
+                <div
+                  className={`h-full bg-white transition-all duration-300 ${
+                    idx === currentIdx ? "opacity-100" : "opacity-0"
+                  }`}
+                />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* 이미지 슬라이드 */}
         <div
@@ -100,34 +105,41 @@ const ProfileCard = ({ userData }) => {
               src={url}
               alt={`profile-${idx}`}
               className="w-full h-full object-cover shrink-0"
+              onError={(e) => {
+                e.target.src = "/images/default_profile.png";
+              }}
             />
           ))}
         </div>
 
-        {/* 좌우 버튼 */}
-        <button
-          onClick={prevSlide}
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform z-20 cursor-pointer hover:bg-white"
-        >
-          <ChevronLeft />
-        </button>
-        <button
-          onClick={nextSlide}
-          className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform z-20 cursor-pointer hover:bg-white"
-        >
-          <ChevronRight />
-        </button>
+        {/* 좌우 버튼 (사진이 2장 이상일 때만 표시) */}
+        {photos.length > 1 && (
+          <>
+            <button
+              onClick={prevSlide}
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform z-20 cursor-pointer hover:bg-white"
+            >
+              <ChevronLeft />
+            </button>
+            <button
+              onClick={nextSlide}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform z-20 cursor-pointer hover:bg-white"
+            >
+              <ChevronRight />
+            </button>
+          </>
+        )}
 
         {/* 하단 그라데이션 & 이름/나이/지역 */}
         <div
           className="absolute bottom-0 left-0 w-full p-5 pt-20 bg-gradient-to-t from-black/80 via-black/40 to-transparent text-white z-10 cursor-pointer"
           onClick={() => setIsExpanded(!isExpanded)}
         >
+          {/* 🔥 [수정] 니가 원한 대로 "25"로 원상복구 했다. */}
           <h2 className="text-3xl font-bold drop-shadow-md">
             {userData.nickname || "이름없음"}, {userData.age || "25"}
           </h2>
           <div className="flex items-center gap-1 mt-1 text-sm font-medium opacity-90">
-            {/* [수정] 학교 정보 제거하고 지역만 표시 */}
             <span>🏠</span>
             <span>{userData.region || "지역 미설정"}</span>
           </div>
@@ -136,7 +148,9 @@ const ProfileCard = ({ userData }) => {
 
       {/* --- [B] 하단 상세 정보 --- */}
       <div
-        className={`bg-white transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"}`}
+        className={`bg-white transition-all duration-500 ease-in-out overflow-hidden ${
+          isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
+        }`}
       >
         <div className="p-5 space-y-6 pb-10">
           {/* 1. 내가 찾는 관계 */}
@@ -159,7 +173,7 @@ const ProfileCard = ({ userData }) => {
             </p>
           </section>
 
-          {/* [수정] 3. 기본 정보 (학교, 키) 추가 */}
+          {/* 3. 기본 정보 (학교, 키) */}
           <section>
             <h3 className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">
               기본 정보
@@ -191,7 +205,7 @@ const ProfileCard = ({ userData }) => {
             </div>
           </section>
 
-          {/* 4. Information (나머지 상세 정보) */}
+          {/* 4. Detail (상세 정보) */}
           <section>
             <h3 className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">
               Detail
@@ -280,7 +294,9 @@ const ProfileCard = ({ userData }) => {
           viewBox="0 0 24 24"
           strokeWidth={2}
           stroke="currentColor"
-          className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isExpanded ? "rotate-180" : "rotate-0"}`}
+          className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${
+            isExpanded ? "rotate-180" : "rotate-0"
+          }`}
         >
           <path
             strokeLinecap="round"
