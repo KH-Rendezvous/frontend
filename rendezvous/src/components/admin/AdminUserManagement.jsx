@@ -90,7 +90,7 @@ const AdminUserManagement = () => {
       );
 
       // 유효한 사진이 없으면 React public 폴더의 기본 이미지 사용
-      if (validPhotos.length === 0) return ["/images/user.png"];
+      if (validPhotos.length === 0) return ["/logo.png"];
 
       return validPhotos.map((img) => {
         const urlPart = img.photoUrl || "/images/";
@@ -115,7 +115,7 @@ const AdminUserManagement = () => {
     }
 
     // 3. 아무것도 없으면 기본 이미지
-    return ["/images/user.png"];
+    return ["/logo.png"];
   };
 
   // 선택된 유저의 사진 목록 계산
