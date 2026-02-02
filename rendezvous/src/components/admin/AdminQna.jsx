@@ -12,7 +12,7 @@ const AdminQna = () => {
 
   const getQnaData = async () => {
     try {
-      const resp = await axiosApi.get("/qna/admin"); // 관리자용 전체 목록 API
+      const resp = await axiosApi.get("/admin/qna"); // 관리자용 전체 목록 API
       setQnaList(resp.data);
     } catch (error) {
       console.error("데이터 로딩 실패:", error);
@@ -107,7 +107,7 @@ const AdminQna = () => {
 
   return (
     <div className="w-full h-full px-10 py-10 flex flex-col justify-center items-center font-sans">
-      {emailStatus && <EmailStatus />}
+      {emailStatus && <EmailStatus text={"메일 전송 중..."} />}
 
       {modal && (
         <div className="fixed inset-0 z-50 flex justify-center items-center">
@@ -201,7 +201,7 @@ const AdminQna = () => {
                     </button>
                   )}
                   <button
-                    className="bg-white border border-gray-300 text-gray-600 px-8 py-3 rounded-xl font-bold"
+                    className="bg-white border border-gray-300 text-gray-600 px-8 py-3 rounded-xl font-bold cursor-pointer"
                     onClick={() => setModal(false)}
                   >
                     닫기
@@ -216,7 +216,7 @@ const AdminQna = () => {
       <div className="w-full max-w-[1000px]">
         <div className="mb-4 flex justify-end">
           <select
-            className="border border-gray-300 rounded-lg px-4 py-2 text-sm outline-none focus:border-[#EE4B6F]"
+            className="border border-gray-300 rounded-lg px-4 py-2 text-sm outline-none focus:border-[#EE4B6F] cursor-pointer"
             value={selectType}
             onChange={(e) => {
               setSelectType(e.target.value);
@@ -265,7 +265,7 @@ const AdminQna = () => {
                     </td>
                     <td>
                       <button
-                        className={`px-3 py-1 rounded text-xs font-bold text-white transition-all ${
+                        className={`px-3 py-1 rounded text-xs font-bold text-white transition-all cursor-pointer ${
                           item.qnaStatus?.trim() === "N"
                             ? "bg-[#EE4B6F] hover:bg-[#d63a5c]"
                             : "bg-gray-400 hover:bg-gray-500"

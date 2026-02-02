@@ -110,7 +110,7 @@ const AdminSupport = () => {
 
   return (
     <div className="w-full h-full px-10 py-10 flex flex-col justify-center items-center font-sans">
-      {emailStatus && <EmailStatus />}
+      {emailStatus && <EmailStatus text={"메일 전송 중..."} />}
 
       {modal && (
         <div className="fixed inset-0 z-[100] flex justify-center items-center">
@@ -212,7 +212,7 @@ const AdminSupport = () => {
                       </button>
                     )}
                     <button
-                      className="bg-white border border-gray-200 text-gray-500 px-12 py-3.5 rounded-2xl font-bold text-lg hover:bg-gray-50"
+                      className="bg-white border border-gray-200 text-gray-500 px-12 py-3.5 rounded-2xl font-bold text-lg hover:bg-gray-50 cursor-pointer"
                       onClick={() => setModal(false)}
                     >
                       닫기
@@ -228,7 +228,7 @@ const AdminSupport = () => {
       <div className="w-full max-w-[1100px]">
         <div className="mb-6 flex justify-end">
           <select
-            className="border border-gray-300 rounded-xl px-4 py-2 text-sm outline-none focus:border-[#EE4B6F]"
+            className="border border-gray-300 rounded-xl px-4 py-2 text-sm outline-none focus:border-[#EE4B6F] cursor-pointer"
             value={selectType}
             onChange={(e) => {
               setSelectType(e.target.value);
@@ -279,7 +279,7 @@ const AdminSupport = () => {
                     </td>
                     <td>
                       <button
-                        className={`px-4 py-1.5 rounded-lg text-xs font-bold text-white transition-all ${
+                        className={`px-4 py-1.5 rounded-lg text-xs font-bold text-white transition-all cursor-pointer ${
                           user.supportStatus?.trim() === "N"
                             ? "bg-[#EE4B6F] shadow-pink-100 hover:bg-[#d63a5c]"
                             : "bg-gray-400 hover:bg-gray-500"
