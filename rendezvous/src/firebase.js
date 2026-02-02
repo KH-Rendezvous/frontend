@@ -6,13 +6,13 @@ import { getMessaging, getToken, onMessage } from "firebase/messaging";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAEMXZ5UIm2yPWBDdsjw9J0oA1vxZSXiEc",
-  authDomain: "rendezvous-8668c.firebaseapp.com",
-  projectId: "rendezvous-8668c",
-  storageBucket: "rendezvous-8668c.firebasestorage.app",
-  messagingSenderId: "89860738721",
-  appId: "1:89860738721:web:f86c4a7453536d2735eae0",
-  measurementId: "G-Z2JZ8JWZCB",
+  apiKey: import.meta.env.VITE_FIREBASE_APIKEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTHDOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECTID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGEBUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGINGSENDERID,
+  appId: import.meta.env.VITE_FIREBASE_APPID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENTID,
 };
 
 // Initialize Firebase
@@ -23,8 +23,7 @@ const analytics = getAnalytics(app);
 const messaging = getMessaging(app);
 
 // ▼ [필수] 아까 '클라우드 메시징' 탭에서 생성한 VAPID Key를 따옴표 안에 넣으세요!
-const VAPID_KEY =
-  "BNYFD7RSRhvuPBy5AxeoU9AL0gXVcjh0eohX18Bc3L7pAt0uQzI9SzYqTYa_1KImvTeEgLsPjat7PfM_9HAhcDQ";
+const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPIDKEY;
 
 // 1. 토큰 발급 함수 (관리자 페이지 켜질 때 실행)
 export const requestPermissionAndGetToken = async () => {
