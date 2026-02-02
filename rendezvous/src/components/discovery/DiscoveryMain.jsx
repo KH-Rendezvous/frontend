@@ -1,26 +1,50 @@
 import React, { useState, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import DiscoveryCard from "./DiscoveryCard";
+import axios from "axios"; // axios 임포트 확인!
 
-const DiscoveryMain = ({ myMemberNo }) => {
-    // 임시 데이터 넣었음
-    const [users, setUsers] = useState([
-        { MEMBER_NO: 1, NICKNAME: "Anna", AGE: 25, CITY: "서울특별시", DISTANCE: 10, PHOTO_URL: "https://images.unsplash.com/photo-1517841905240-472988babdf9" },
-        { MEMBER_NO: 2, NICKNAME: "James", AGE: 28, CITY: "경기도", DISTANCE: 15, PHOTO_URL: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e" }
-    ]);
+const DiscoveryMain = ({ myMemberNo = 3 }) => {
+    // [수정] 실제 DB 데이터를 담기 위해 초기값은 빈 배열로 설정
+    const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // [추가] 백엔드에서 추천 유저 리스트를 가져오는 함수
+        const fetchDiscoveryUsers = async () => {
+            try {
+                setLoading(true);
+                // GET 방식으로 내 회원번호를 전달 (Controller의 @RequestParam과 매칭)
+                const response = await axios.get("/api/matching/discovery", {
+                    params: { memberNo: myMemberNo }
+                });
 
-        setLoading(false);
-    }, []);
+                // 서버에서 가져온 데이터를 상태에 저장
+                // DTO 필드명이 camelCase일 수 있으니 확인 (예: memberNo, photoUrl)
+                setUsers(response.data);
+            } catch (error) {
+                console.error("인연 데이터를 가져오는 중 오류 발생:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (myMemberNo) {
+            fetchDiscoveryUsers();
+        }
+    }, [myMemberNo]);
 
     const handleSwipe = (direction) => {
         if (users.length === 0) return;
         const actionType = direction === "right" ? "LIKE" : "NOPE";
-        console.log(`Action: ${actionType} to ${users[0].NICKNAME}`);
+        
+        // [참고] users[0]의 필드명이 DB/DTO 설정에 따라 다를 수 있음
+        // 만약 DTO에서 camelCase를 썼다면 users[0].nickname 으로 접근
+        console.log(`Action: ${actionType} to ${users[0].nickname || users[0].NICKNAME}`);
 
+        // 다음 카드로 넘기기
         setUsers((prev) => prev.slice(1));
+
+        // TODO: 나중에 이 시점에 DB에 ACTION을 저장하는 axios.post 코드가 들어올 자리입니다.
     };
 
     return (
@@ -34,7 +58,8 @@ const DiscoveryMain = ({ myMemberNo }) => {
                 <div className="relative w-[380px] h-[580px]">
                     <AnimatePresence mode="popLayout">
                         <DiscoveryCard
-                            key={users[0].MEMBER_NO}
+                            // DTO 필드명에 맞춰 key값 설정 (memberNo 또는 MEMBER_NO)
+                            key={users[0].memberNo || users[0].MEMBER_NO}
                             user={users[0]}
                             onSwipe={handleSwipe}
                         />

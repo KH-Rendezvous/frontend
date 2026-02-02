@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import DiscoverySidebar from "../components/discovery/DiscoverySidebar";
 import { Outlet } from "react-router-dom";
 import { MATCH_DATA } from "../utils/matchData"; 
+import { NotificationProvider } from "../context/NotificationContext"; 
 
 const MainLayout = () => {
   const [activeTab, setActiveTab] = useState("received");
@@ -40,24 +41,27 @@ const MainLayout = () => {
   ]);
 
   return (
-    <div className="flex w-full h-screen bg-white overflow-hidden">
-      {/* 1. 사이드바 영역: 모든 데이터와 탭 제어 함수를 넘김 */}
-      <DiscoverySidebar
-        myRelIntent={myRelIntent} 
-        topRelIntents={topRelIntents}
-        myInterests={myInterests}
-        topInterests={topInterests}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        matchData={MATCH_DATA} 
-      />
+    /* [수정] NotificationProvider로 전체를 감싸 알림 및 전역 상태 공유 활성화 */
+    <NotificationProvider>
+      <div className="flex w-full h-screen bg-white overflow-hidden">
+        {/* 1. 사이드바 영역: 모든 데이터와 탭 제어 함수를 넘김 */}
+        <DiscoverySidebar
+          myRelIntent={myRelIntent} 
+          topRelIntents={topRelIntents}
+          myInterests={myInterests}
+          topInterests={topInterests}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          matchData={MATCH_DATA} 
+        />
 
-      {/* 2. 메인 컨텐츠 */}
-      <main className="flex-1 h-full overflow-y-auto bg-gray-50 custom-scrollbar">
-        {/* Outlet의 context를 통해 하위 페이지에 공통 데이터 전달 */}
-        <Outlet context={{ activeTab, matchData: MATCH_DATA }} />
-      </main>
-    </div>
+        {/* 2. 메인 컨텐츠 */}
+        <main className="flex-1 h-full overflow-y-auto bg-gray-50 custom-scrollbar">
+          {/* Outlet의 context를 통해 하위 페이지에 공통 데이터 전달 */}
+          <Outlet context={{ activeTab, matchData: MATCH_DATA }} />
+        </main>
+      </div>
+    </NotificationProvider>
   );
 };
 
