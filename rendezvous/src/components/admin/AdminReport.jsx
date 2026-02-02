@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { axiosApi } from "../../api/axiosAPI";
 import EmailStatus from "./EmailStatus";
+import { X } from "lucide-react"; // 닫기 아이콘용 (없으면 그냥 텍스트 X로 대체 가능)
 
 const AdminReport = () => {
   const [reportList, setReportList] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectType, setSelectType] = useState("all");
 
-  const itemsPerPage = 10; // 페이지당 항목 수
-  const pageGroupSize = 10; // 하단 페이지 번호 그룹 크기
+  const itemsPerPage = 10;
+  const pageGroupSize = 10;
 
   const getReportData = async () => {
     try {
@@ -23,7 +24,6 @@ const AdminReport = () => {
     getReportData();
   }, []);
 
-  // 필터링 로직
   const filteredList = reportList.filter((item) => {
     const status = item.reportStatus
       ? item.reportStatus.trim().toUpperCase()
@@ -35,33 +35,24 @@ const AdminReport = () => {
     return true;
   });
 
-  // --- 페이지네이션 계산 로직 ---
   const totalItems = filteredList.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-  // 현재 페이지 그룹 계산 (예: 1~10페이지는 1그룹, 11~20페이지는 2그룹)
   const currentGroup = Math.ceil(currentPage / pageGroupSize);
-
-  // 그룹의 시작 페이지와 끝 페이지 계산
   const startPage = (currentGroup - 1) * pageGroupSize + 1;
   const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
-
-  // 현재 페이지에 보여줄 데이터 슬라이싱
   const currentItems = filteredList.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
-  // 페이지 번호 배열 생성
   const pageNumbers = [];
-  for (let i = startPage; i <= endPage; i++) {
-    pageNumbers.push(i);
-  }
+  for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
 
-  // --- 모달 관련 로직 ---
   const [modal, setModal] = useState(false);
   const [selectedReport, setSelectedReport] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+
+  // [추가] 이미지 확대 모달 상태 관리
+  const [zoomImage, setZoomImage] = useState(null);
 
   const modalHandler = (report) => {
     setSelectedReport(report);
@@ -70,24 +61,20 @@ const AdminReport = () => {
 
   const processReportHandler = async () => {
     if (!window.confirm("해당 신고를 처리 완료하시겠습니까?")) return;
-
     setModal(false);
     setIsLoading(true);
 
     try {
-      console.log(
-        `selectedReport.targetMemberNo : ${selectedReport.targetMemberNo}`
-      );
       const resp = await axiosApi.post("/admin/report/process", {
         reportNo: selectedReport.reportNo,
-        targetMemberNo: 2,
+        targetMemberNo: selectedReport.targetMemberNo,
       });
 
       if (resp.status === 200) {
         setIsLoading(false);
         alert("신고 처리가 완료되었습니다!");
+        getReportData();
       }
-      getReportData();
     } catch (error) {
       console.log(error);
       setIsLoading(false);
@@ -101,6 +88,31 @@ const AdminReport = () => {
     <div className="w-full h-full px-10 py-10 flex flex-col justify-center items-center font-sans">
       {isLoading && <EmailStatus text={"신고 처리 중..."} />}
 
+      {/* --- [추가됨] 이미지 확대 모달 (Z-Index를 가장 높게 설정) --- */}
+      {zoomImage && (
+        <div
+          className="fixed inset-0 z-[60] flex justify-center items-center bg-black/80 backdrop-blur-sm animate-fadeIn"
+          onClick={() => setZoomImage(null)} // 배경 클릭 시 닫기
+        >
+          {/* 닫기 버튼 */}
+          <button
+            className="absolute top-5 right-5 text-white hover:text-gray-300 transition-colors"
+            onClick={() => setZoomImage(null)}
+          >
+            <X size={40} />
+          </button>
+
+          {/* 확대된 이미지 */}
+          <img
+            src={zoomImage}
+            alt="Enlarged Evidence"
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()} // 이미지 클릭 시 닫히지 않게 방지
+          />
+        </div>
+      )}
+
+      {/* --- 신고 상세 모달 --- */}
       {modal && (
         <div className="fixed inset-0 z-50 flex justify-center items-center">
           <div
@@ -115,7 +127,6 @@ const AdminReport = () => {
             </div>
 
             <div className="p-8 overflow-y-auto flex-1 flex flex-col gap-6 custom-scrollbar">
-              {/* 상단 정보 카드 */}
               <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-100">
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
@@ -145,7 +156,6 @@ const AdminReport = () => {
                 </div>
               </div>
 
-              {/* 내용 영역 */}
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-bold text-gray-700">
                   신고 유형
@@ -167,12 +177,45 @@ const AdminReport = () => {
                     {selectedReport.reportContent}
                   </p>
                 </div>
+
                 <label className="text-sm font-bold text-gray-700 mt-2">
-                  증거 자료
+                  증거 자료{" "}
+                  <span className="text-xs font-normal text-gray-400 ml-1">
+                    (클릭하여 확대)
+                  </span>
                 </label>
                 <div className="border border-gray-200 rounded-xl p-5 bg-white shadow-sm min-h-[120px]">
-                  {/* ✅ 더미데이터 -> 이미지로 추가하기 */}
-                  <img src="/people.png" alt="증거 자료" />
+                  {selectedReport.imageList &&
+                  selectedReport.imageList.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedReport.imageList.map((img, i) => (
+                        <div
+                          key={i}
+                          className="relative group cursor-pointer overflow-hidden rounded-lg border border-gray-100"
+                          onClick={() =>
+                            setZoomImage(`http://localhost:80${img}`)
+                          } // [수정] 클릭 시 확대 상태 저장
+                        >
+                          <img
+                            src={`http://localhost:80${img}`}
+                            alt={`증거 자료 ${i + 1}`}
+                            className="w-[150px] h-[100px] object-cover transition-transform duration-300 group-hover:scale-110"
+                            onError={(e) => (e.target.style.display = "none")}
+                          />
+                          {/* 호버 시 돋보기 아이콘 효과 (선택사항) */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex justify-center items-center">
+                            <span className="text-white opacity-0 group-hover:opacity-100 font-bold text-xs">
+                              확대
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-400 text-sm text-center py-4">
+                      첨부된 증거 자료가 없습니다.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -197,15 +240,15 @@ const AdminReport = () => {
         </div>
       )}
 
+      {/* --- 메인 테이블 리스트 --- */}
       <div className="w-full max-w-[1000px]">
-        {/* 필터 셀렉트 */}
         <div className="mb-4 flex justify-end">
           <select
             className="border border-gray-300 rounded-lg px-4 py-2 text-sm outline-none shadow-sm focus:border-[#EE4B6F] cursor-pointer"
             value={selectType}
             onChange={(e) => {
               setSelectType(e.target.value);
-              setCurrentPage(1); // 필터 변경 시 1페이지로 초기화
+              setCurrentPage(1);
             }}
           >
             <option value="all">전체 신고</option>
@@ -214,7 +257,6 @@ const AdminReport = () => {
           </select>
         </div>
 
-        {/* 테이블 */}
         <div className="w-full overflow-hidden bg-white shadow-sm rounded-lg border border-gray-100">
           <table className="w-full table-fixed text-center border-collapse">
             <thead className="bg-[#fff0f3] text-gray-700 h-12 border-b-2 border-[#EE4B6F]">
@@ -282,28 +324,23 @@ const AdminReport = () => {
           </table>
         </div>
 
-        {/* --- 페이지네이션 (요청하신 스타일 적용) --- */}
+        {/* --- 페이지네이션 --- */}
         {totalPages > 0 && (
           <div className="flex justify-center items-center gap-2 mt-8 select-none">
-            {/* 맨 처음으로 (<<) */}
             <button
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
-              className="p-2 text-gray-500 hover:text-[#EE4B6F] disabled:opacity-30 disabled:hover:text-gray-500 transition-colors"
+              className="p-2 text-gray-500 hover:text-[#EE4B6F] disabled:opacity-30 transition-colors"
             >
               &lt;&lt;
             </button>
-
-            {/* 이전 페이지로 (<) */}
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="p-2 text-gray-500 hover:text-[#EE4B6F] disabled:opacity-30 disabled:hover:text-gray-500 transition-colors"
+              className="p-2 text-gray-500 hover:text-[#EE4B6F] disabled:opacity-30 transition-colors"
             >
               &lt;
             </button>
-
-            {/* 페이지 번호 (1, 2, 3...) */}
             <div className="flex gap-1 mx-2">
               {pageNumbers.map((n) => (
                 <button
@@ -319,23 +356,19 @@ const AdminReport = () => {
                 </button>
               ))}
             </div>
-
-            {/* 다음 페이지로 (>) */}
             <button
               onClick={() =>
                 setCurrentPage((prev) => Math.min(prev + 1, totalPages))
               }
               disabled={currentPage === totalPages}
-              className="p-2 text-gray-500 hover:text-[#EE4B6F] disabled:opacity-30 disabled:hover:text-gray-500 transition-colors"
+              className="p-2 text-gray-500 hover:text-[#EE4B6F] disabled:opacity-30 transition-colors"
             >
               &gt;
             </button>
-
-            {/* 맨 끝으로 (>>) */}
             <button
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
-              className="p-2 text-gray-500 hover:text-[#EE4B6F] disabled:opacity-30 disabled:hover:text-gray-500 transition-colors"
+              className="p-2 text-gray-500 hover:text-[#EE4B6F] disabled:opacity-30 transition-colors"
             >
               &gt;&gt;
             </button>
