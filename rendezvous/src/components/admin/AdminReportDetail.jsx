@@ -8,7 +8,6 @@ import {
   Mail,
   ChevronLeft,
 } from "lucide-react";
-import React from "react";
 import { axiosApi } from "../../api/axiosAPI";
 
 const AdminReportDetail = () => {
