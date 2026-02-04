@@ -8,6 +8,8 @@ import {
   Mail,
   ChevronLeft,
 } from "lucide-react";
+import React from "react";
+import { axiosApi } from "../../api/axiosAPI";
 
 const AdminReportDetail = () => {
   const { id } = useParams();
@@ -219,10 +221,12 @@ const AdminReportDetail = () => {
                   <div
                     key={i}
                     className="relative group cursor-pointer rounded-lg overflow-hidden border border-gray-200 shadow-sm"
-                    onClick={() => setZoomImage(`http://localhost:80${img}`)}
+                    onClick={() =>
+                      setZoomImage(`${axiosApi.defaults.baseURL}${img}`)
+                    }
                   >
                     <img
-                      src={`http://localhost:80${img}`}
+                      src={`${axiosApi.defaults.baseURL}${img}`}
                       alt={`증거 ${i + 1}`}
                       className="w-[150px] h-[100px] object-cover transition-transform duration-300 group-hover:scale-110"
                       onError={(e) => (e.target.style.display = "none")}

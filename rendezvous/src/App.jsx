@@ -4,6 +4,7 @@ import "./index.css";
 // 페이지 컴포넌트들
 import HomePage from "./pages/home/HomePage";
 import LoginPage from "./pages/user/LoginPage";
+import Signup from "./pages/user/Signup";
 import AdminPage from "./pages/admin/AdminPage";
 import MyPage from "./pages/myPage/MyPage";
 import DiscoveryPage from "./pages/discovery/DiscoveryPage"; // ※ 주의: 여기엔 사이드바가 없고 내용만 있어야 함
@@ -29,6 +30,7 @@ function App() {
 
       <Route path="/admin/*" element={<AdminPage />} />
       <Route path="/myPage" element={<MyPage />} />
+      <Route path="/signUp" element={<Signup />} />
 
       {/* footer에 포함된 컨텐츠들 */}
       <Route path="/service-intro" element={<ServiceIntro />} />

@@ -11,7 +11,7 @@ import {
 
 const AdminUserManagement = () => {
   // [핵심] 백엔드 서버 주소
-  const BACKEND_URL = "http://localhost:80";
+  const BACKEND_URL = axiosApi.defaults.baseURL;
 
   // --- 1. 상태 관리 ---
   const [userList, setUserList] = useState([]);
@@ -68,7 +68,7 @@ const AdminUserManagement = () => {
   const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
   const currentItems = filteredUser.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
   const pageNumbers = [];
   for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
@@ -84,7 +84,7 @@ const AdminUserManagement = () => {
   const getUserPhotos = (user) => {
     if (user.profileList && user.profileList.length > 0) {
       const validPhotos = user.profileList.filter(
-        (img) => img.renameName || img.photoUrl
+        (img) => img.renameName || img.photoUrl,
       );
 
       if (validPhotos.length === 0) return ["/images/user.png"];
@@ -201,7 +201,7 @@ const AdminUserManagement = () => {
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-2"
                     onClick={() =>
                       setImgIndex((prev) =>
-                        Math.min(userPhotos.length - 1, prev + 1)
+                        Math.min(userPhotos.length - 1, prev + 1),
                       )
                     }
                   >

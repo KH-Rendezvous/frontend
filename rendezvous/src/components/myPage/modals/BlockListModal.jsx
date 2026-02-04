@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios"; // ★ axios 임포트 필수
+import axios from "axios";
+import { axiosApi } from "../../../api/axiosAPI";
 
 const BlockListModal = ({ isOpen, onClose }) => {
   // 1. 초기값은 빈 배열로 시작
@@ -15,7 +16,7 @@ const BlockListModal = ({ isOpen, onClose }) => {
   // 목록 조회 함수 (수정본)
   const getBlockList = async () => {
     try {
-      const response = await axios.get("http://localhost/api/block/list");
+      const response = await axiosApi.get("/api/block/list");
 
       console.log("서버 응답 데이터:", response.data); // F12 콘솔 찍어봐라 뭐가 오는지
 
@@ -38,7 +39,7 @@ const BlockListModal = ({ isOpen, onClose }) => {
 
     try {
       // DELETE 요청은 body를 보낼 때 { data: { ... } } 형태로 감싸야 함
-      const response = await axios.delete("http://localhost/api/block/delete", {
+      const response = await axiosApi.delete("/api/block/delete", {
         data: { blockId: blockId },
       });
 

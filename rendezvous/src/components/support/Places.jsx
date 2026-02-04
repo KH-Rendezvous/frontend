@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { axiosApi } from "../../api/axiosAPI";
 
 // --- [1] AI 추천 섹션 컴포넌트 ---
 const AiRecommendation = ({ places, loading }) => {
@@ -154,8 +155,8 @@ const Places = () => {
 
   // --- 초기 지역 데이터 로드 ---
   useEffect(() => {
-    axios
-      .get("http://localhost:80/api/places/filters")
+    axiosApi
+      .get("/api/places/filters")
       .then((res) => setLocations(res.data))
       .catch((err) => console.error("지역 목록 로딩 실패:", err));
   }, []);
@@ -176,8 +177,8 @@ const Places = () => {
         // 태그 선택 시 # 제거 후 전송
         if (selectedTag) params.append("tag", selectedTag.replace("#", ""));
 
-        const url = `http://localhost:80/api/places?${params.toString()}`;
-        const response = await axios.get(url);
+        const url = `/api/places?${params.toString()}`;
+        const response = await axiosApi.get(url);
 
         setPlaces(response.data);
         setCurrentPage(1); // 필터 바뀌면 1페이지로
@@ -297,8 +298,8 @@ const Places = () => {
               {category === "CAFE"
                 ? "☕ 추천 카페"
                 : category === "RESTAURANT"
-                ? "🍴 추천 맛집"
-                : "📍 추천 장소"}
+                  ? "🍴 추천 맛집"
+                  : "📍 추천 장소"}
             </h3>
             <span className="text-sm text-[#FF4458] font-bold mb-1">
               {places.length}건

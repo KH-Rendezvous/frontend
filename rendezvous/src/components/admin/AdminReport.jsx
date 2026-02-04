@@ -41,7 +41,7 @@ const AdminReport = () => {
   const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
   const currentItems = filteredList.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
   const pageNumbers = [];
   for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
@@ -188,11 +188,11 @@ const AdminReport = () => {
                           key={i}
                           className="relative group cursor-pointer overflow-hidden rounded-lg border border-gray-100"
                           onClick={() =>
-                            setZoomImage(`http://localhost:80${img}`)
+                            setZoomImage(`${axiosApi.defaults.baseURL}${img}`)
                           }
                         >
                           <img
-                            src={`http://localhost:80${img}`}
+                            src={`${axiosApi.defaults.baseURL}${img}`}
                             alt={`증거 ${i + 1}`}
                             className="w-[100px] h-[100px] sm:w-[150px] object-cover transition-transform duration-300 group-hover:scale-110"
                             onError={(e) => (e.target.style.display = "none")}

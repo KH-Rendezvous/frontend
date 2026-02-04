@@ -9,6 +9,7 @@ import SchoolEditModal from "../modals/SchoolEditModal";
 import RegionEditModal from "../modals/RegionEditModal";
 import ProfileListItem from "../components/ProfileListItem";
 import ProfileImageGrid from "../components/ProfileImageGrid";
+import { axiosApi } from "../../../api/axiosAPI";
 
 // 관심사 포맷팅 함수
 const formatInterests = (items) => {
@@ -57,7 +58,7 @@ const MyPageMain = () => {
       try {
         // 공통 코드(MASTER_CODES) 가져오기
         try {
-          const codeRes = await axios.get("http://localhost/api/mypage/codes");
+          const codeRes = await axiosApi.get("/api/mypage/codes");
           if (codeRes.data.result === "success") {
             console.log(
               "공통 코드 로드 완료:",
@@ -70,9 +71,7 @@ const MyPageMain = () => {
         }
 
         // 내 프로필 정보 가져오기
-        const profileRes = await axios.get(
-          "http://localhost/api/mypage/profile",
-        );
+        const profileRes = await axiosApi.get("/api/mypage/profile");
         if (profileRes.data.result === "success") {
           const dbData = profileRes.data.data;
           setOriginalNickname(dbData.nickname || "");
@@ -85,7 +84,7 @@ const MyPageMain = () => {
               if (idx >= 0 && idx < 6) {
                 newImages[idx] = {
                   id: photo.photoId,
-                  url: "http://localhost" + photo.photoUrl + photo.renameName,
+                  url: `${axiosApi.defaults.baseURL}${photo.photoUrl}${photo.renameName}`,
                   file: null,
                   order: photo.photoOrder,
                 };
@@ -280,10 +279,9 @@ const MyPageMain = () => {
     // 닉네임 중복 체크
     if (userData.nickname !== originalNickname) {
       try {
-        const checkRes = await axios.get(
-          "http://localhost/api/mypage/nickname/check",
-          { params: { nickname: userData.nickname } },
-        );
+        const checkRes = await axiosApi.get("/api/mypage/nickname/check", {
+          params: { nickname: userData.nickname },
+        });
         if (checkRes.data > 0) {
           alert("이미 사용 중인 닉네임입니다.");
           return;
@@ -344,11 +342,9 @@ const MyPageMain = () => {
       }
 
       // 4. 서버 전송 (Multipart)
-      const response = await axios.post(
-        "http://localhost/api/mypage/profile",
-        formData,
-        { headers: { "Content-Type": undefined } },
-      );
+      const response = await axiosApi.post("/api/mypage/profile", formData, {
+        headers: { "Content-Type": undefined },
+      });
 
       if (response.data.result === "success") {
         alert("프로필이 성공적으로 수정되었습니다.");

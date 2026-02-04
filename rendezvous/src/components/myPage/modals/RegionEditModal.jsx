@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios"; // ★ axios 임포트 필수
+import axios from "axios";
+import { axiosApi } from "../../../api/axiosAPI";
 
 const RegionEditModal = ({ currentRegion, onClose, onSave }) => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -21,7 +22,7 @@ const RegionEditModal = ({ currentRegion, onClose, onSave }) => {
       }
 
       try {
-        const response = await axios.get("http://localhost/api/mypage/region", {
+        const response = await axiosApi.get("/api/mypage/region", {
           params: { keyword: searchTerm },
         });
 
