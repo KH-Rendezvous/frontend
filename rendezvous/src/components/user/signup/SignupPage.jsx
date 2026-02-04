@@ -1,26 +1,49 @@
 import React, { useState } from "react";
 import InterestEditModal from "../../myPage/modals/InterestEditModal";
 import RelationModal from "../signup/RelationModal";
+import { axiosApi } from "../../../api/axiosAPI";
 
 const INTEREST_LIST = [
-  "운동",
-  "게임",
-  "코딩",
-  "독서",
-  "영화",
-  "여행",
-  "요리",
-  "음악",
-  "등산",
-  "반려동물",
-  "카페",
-  "맛집",
+  "MBTI",
+  "맛집 탐방",
+  "넷플릭스",
+  "해외여행",
+  "산책",
+  "카페 투어",
+  "헬스",
   "드라이브",
-  "전시회",
-  "재테크",
-  "패션",
-  "사진",
-  "술",
+  "호캉스",
+  "반려동물",
+  "영화 감상",
+  "와인/위스키",
+  "전시회 관람",
+  "유튜브",
+  "테니스/골프",
+  "주식/재테크",
+  "온라인 게임",
+  "캠핑/차박",
+  "자기계발",
+  "페스티벌",
+  "코인 노래방",
+  "진지한 대화",
+  "쇼핑",
+  "러닝",
+  "독서",
+  "보드게임",
+  "워라밸",
+  "요리",
+  "사진 촬영",
+  "자취",
+  "콘솔 게임",
+  "낚시",
+  "직장생활",
+  "스터디",
+  "피아노",
+  "명상",
+  "여행",
+  "클라이밍",
+  "언어 교환",
+  "웹툰",
 ];
 
 const SignupPage = () => {
@@ -29,7 +52,7 @@ const SignupPage = () => {
     name: "",
     nickname: "",
     email: "",
-    authCode: "",
+    authKey: "",
     phone: "",
     password: "",
     passwordConfirm: "",
@@ -57,6 +80,32 @@ const SignupPage = () => {
   const handleRelationSave = (selectedId) => {
     setFormData((prev) => ({ ...prev, relation: selectedId }));
     setIsRelationModalOpen(false);
+  };
+
+  const handleSendEmail = async () => {
+    if (!formData.email) {
+      alert("이메일을 입력해주세요.");
+      return;
+    }
+    if (errors.email) {
+      alert("올바른 이메일 형식이 아닙니다.");
+      return;
+    }
+
+    try {
+      const response = await axiosApi.post("/email/signup", {
+        email: formData.email,
+      });
+
+      if (response.status === 200 && response.data === 1) {
+        alert("인증번호가 전송되었습니다. 이메일을 확인해주세요.");
+      } else {
+        alert("메일 전송에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      }
+    } catch (error) {
+      console.error("Email Send Error:", error);
+      alert("서버 오류가 발생했습니다.");
+    }
   };
 
   // 에러 메시지 상태 관리
@@ -157,11 +206,11 @@ const SignupPage = () => {
         }
         break;
 
-      case "authCode":
+      case "authKey":
         if (trimmedValue && trimmedValue.length < 6) {
-          tempErrors.authCode = "인증번호 6자리를 모두 입력해주세요.";
+          tempErrors.authKey = "인증번호 6자리를 모두 입력해주세요.";
         } else {
-          delete tempErrors.authCode;
+          delete tempErrors.authKey;
         }
         break;
 
@@ -270,7 +319,7 @@ const SignupPage = () => {
     const { name, value } = e.target;
 
     // 1. 입력 제한 (Masking)
-    if (name === "authCode") {
+    if (name === "authKey") {
       if (!/^[a-zA-Z0-9]*$/.test(value) || value.length > 6) return;
     } else if (name === "phone") {
       if (!/^\d*$/.test(value) || value.length > 11) return;
@@ -328,21 +377,113 @@ const SignupPage = () => {
     setImages(newImages);
   };
 
-  // 가입 신청 버튼 핸들러 (최소 2장 체크)
-  const handleSubmit = (e) => {
-    e.preventDefault(); // form submit 방지
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-    // 1. 이미지 개수 체크
-    const validImageCount = images.filter((img) => img !== null).length;
-    if (validImageCount < 2) {
+    // 1. [이미지 검사] 유효한 이미지가 2장 이상인지 확인
+    const validImages = images.filter((img) => img !== null);
+    if (validImages.length < 2) {
       alert("프로필 사진은 최소 2장 이상 등록해야 합니다.");
       return;
     }
 
-    // 2. 나머지 유효성 검사 통과 여부 확인 (errors 객체가 비어있고 필수값이 다 찼는지 등)
-    // (여기서는 간단히 로그만 찍음)
-    console.log("Submitting form...", formData);
-    alert("가입 신청이 완료되었습니다!");
+    // 2. [실시간 에러 검사]
+    const currentErrorMessages = Object.values(errors).filter((msg) => msg);
+    if (currentErrorMessages.length > 0) {
+      alert(
+        "입력하신 정보를 다시 확인해주세요.\n(빨간색 에러 메시지를 해결해야 합니다)",
+      );
+      return;
+    }
+
+    // 3. [필수 입력값 검사]
+    const requiredFields = [
+      { key: "email", label: "이메일" },
+      { key: "authKey", label: "인증번호" },
+      { key: "password", label: "비밀번호" },
+      { key: "passwordConfirm", label: "비밀번호 확인" },
+      { key: "name", label: "이름" },
+      { key: "nickname", label: "닉네임" },
+      { key: "phone", label: "전화번호" },
+      { key: "birthYear", label: "생년" },
+      { key: "birthMonth", label: "생월" },
+      { key: "birthDay", label: "생일" },
+      { key: "gender", label: "성별" },
+      { key: "relation", label: "찾는 관계" },
+    ];
+
+    for (const field of requiredFields) {
+      const value = formData[field.key];
+      if (!value || (typeof value === "string" && value.trim() === "")) {
+        alert(`${field.label}을(를) 입력해주세요.`);
+        return;
+      }
+    }
+
+    if (formData.password !== formData.passwordConfirm) {
+      alert("비밀번호가 일치하지 않습니다.");
+      return;
+    }
+
+    // ★ [추가] 월/일이 한 자리 수면 앞에 '0' 붙여주기 (Padding)
+    // 1 -> 01, 12 -> 12로 변환됨
+    const fixedMonth = formData.birthMonth.padStart(2, "0");
+    const fixedDay = formData.birthDay.padStart(2, "0");
+
+    // 덮어씌울 새로운 데이터 객체 생성
+    const finalFormData = {
+      ...formData,
+      birthMonth: fixedMonth,
+      birthDay: fixedDay,
+    };
+
+    if (formData.interests.length === 0) {
+      alert("관심사를 최소 1개 이상 선택해주세요.");
+      return;
+    }
+
+    // --- 데이터 전송 준비 ---
+
+    // 6. FormData 생성
+    const submitData = new FormData();
+
+    const { passwordConfirm, ...rest } = finalFormData;
+
+    // JSON 데이터 추가 ('data')
+    const jsonBlob = new Blob([JSON.stringify(rest)], {
+      type: "application/json",
+    });
+
+    submitData.append("data", jsonBlob);
+
+    // 이미지 파일 추가 ('images')
+    validImages.forEach((img) => {
+      if (img.file) {
+        submitData.append("images", img.file);
+      }
+    });
+
+    try {
+      const response = await axiosApi.post("/api/member/signup", submitData);
+
+      // 8. 결과 처리
+      if (response.data === 1) {
+        alert("가입 신청이 완료되었습니다! 로그인 페이지로 이동합니다.");
+        window.location.href = "/login";
+      } else {
+        alert("가입 처리에 실패했습니다. (관리자 문의)");
+      }
+    } catch (error) {
+      console.error("Signup failed", error);
+
+      const serverMsg = error.response?.data?.message;
+
+      if (serverMsg) {
+        alert(`가입 실패: ${serverMsg}`);
+      } else {
+        alert("서버 통신 중 오류가 발생했습니다.");
+      }
+    }
   };
 
   return (
@@ -430,6 +571,7 @@ const SignupPage = () => {
                   />
                   <button
                     type="button"
+                    onClick={handleSendEmail}
                     className="bg-[#EE4B6F] hover:bg-[#D63A5C] text-white px-4 py-3 rounded-xl text-xs font-bold transition-colors whitespace-nowrap shadow-md shadow-pink-200"
                   >
                     인증번호 전송
@@ -442,12 +584,22 @@ const SignupPage = () => {
 
               <input
                 type="text"
-                name="authCode"
-                value={formData.authCode}
+                name="authKey"
+                value={formData.authKey}
                 placeholder="인증번호 입력"
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#EE4B6F] transition-all"
+                className={`w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm focus:outline-none transition-all ${
+                  errors.authKey
+                    ? "border-red-500 focus:border-red-500"
+                    : "border-gray-200 focus:border-[#EE4B6F]"
+                }`}
                 onChange={handleChange}
               />
+
+              {errors.authKey && (
+                <p className="text-xs text-red-500 ml-1 mt-1">
+                  {errors.authKey}
+                </p>
+              )}
             </div>
 
             {/* 전화번호 */}
