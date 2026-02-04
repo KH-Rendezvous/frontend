@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { Map, MapMarker } from "react-kakao-maps-sdk";
+import { axiosApi } from "../../api/axiosAPI";
 
 const PlacesDetail = () => {
   const { id } = useParams();
@@ -29,9 +30,7 @@ const PlacesDetail = () => {
 
     const fetchDetail = async () => {
       try {
-        const response = await axios.get(
-          `http://localhost:80/api/places/${id}`
-        );
+        const response = await axiosApi.get(`/api/places/${id}`);
         setPlace(response.data);
       } catch (error) {
         console.error("상세 정보 로딩 실패:", error);

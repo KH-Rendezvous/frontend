@@ -9,7 +9,7 @@ export default defineConfig({
     proxy: {
       // '/api'로 시작하는 요청은 스프링부트(백엔드)로 보냄
       "/api": {
-        target: "http://localhost:80", // ★ 백엔드 포트번호 확인(80)
+        target: "http://192.168.32.8:80", // ★ 백엔드 포트번호 확인(80)
         changeOrigin: true,
         secure: false,
       },

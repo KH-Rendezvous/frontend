@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import axios from "axios"; // ★ axios 임포트 필수
+import axios from "axios";
+import { axiosApi } from "../../../api/axiosAPI";
 
 const BlockModal = ({ isOpen, onClose }) => {
   // 1. 입력값 관리용 State
@@ -30,7 +31,7 @@ const BlockModal = ({ isOpen, onClose }) => {
 
     try {
       // ★ 백엔드 DTO 필드명(targetName 등)에 맞춰서 매핑해서 보냄
-      const response = await axios.post("http://localhost/api/block/insert", {
+      const response = await axiosApi.post("/api/block/insert", {
         targetName: formData.name,
         targetPhone: formData.phone,
         targetEmail: formData.email,

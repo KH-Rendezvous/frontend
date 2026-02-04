@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { axiosApi } from "../../../api/axiosAPI";
 
 const DeleteAccountModal = ({ isOpen, onClose, memberNo }) => {
   const [isChecked, setIsChecked] = useState(false);
@@ -17,7 +18,7 @@ const DeleteAccountModal = ({ isOpen, onClose, memberNo }) => {
 
     try {
       // 서버로 탈퇴 요청 (PUT)
-      const response = await axios.put("http://localhost/api/mypage/withdraw", {
+      const response = await axiosApi.put("/api/mypage/withdraw", {
         memberNo: memberNo, // 받아온 회원 번호 전송
       });
 

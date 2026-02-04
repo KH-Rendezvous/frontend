@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 
 const InterestEditModal = ({
-  allInterestOptions, // ★ 부모에서 넘겨준 DB 데이터
+  allInterestOptions,
   currentInterests = [],
   onClose,
   onSave,

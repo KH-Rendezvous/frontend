@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 import axios from "axios";
+import { axiosApi } from "../../../api/axiosAPI";
 
 // 모달 컴포넌트들 임포트
 import BlockModal from "../modals/BlockModal";
@@ -34,7 +35,7 @@ const MyPageSidebar = () => {
     console.log("DB로 전송할 거리:", payloadDistance);
 
     try {
-      const response = await axios.put("http://localhost/api/mypage/distance", {
+      const response = await axiosApi.put("/api/mypage/distance", {
         memberNo: memberNo,
         searchDistance: payloadDistance,
       });
@@ -66,7 +67,7 @@ const MyPageSidebar = () => {
     );
 
     try {
-      const response = await axios.put("http://localhost/api/mypage/age", {
+      const response = await axiosApi.put("/api/mypage/age", {
         memberNo: memberNo,
         targetMinAge: minAge,
         targetMaxAge: payloadMaxAge,
@@ -89,7 +90,7 @@ const MyPageSidebar = () => {
     else if (newGenderKor === "여성") code = "F";
 
     try {
-      const response = await axios.put("http://localhost/api/mypage/gender", {
+      const response = await axiosApi.put("/api/mypage/gender", {
         memberNo: memberNo,
         targetGender: code,
       });
@@ -112,13 +113,10 @@ const MyPageSidebar = () => {
     setVisibility(newCode);
 
     try {
-      const response = await axios.put(
-        "http://localhost/api/mypage/visibility",
-        {
-          memberNo: memberNo,
-          profileOpen: newCode,
-        },
-      );
+      const response = await axiosApi.put("/api/mypage/visibility", {
+        memberNo: memberNo,
+        profileOpen: newCode,
+      });
 
       if (response.data.result === "success") {
         console.log("✅ 공개범위 서버 저장 완료");
@@ -136,7 +134,7 @@ const MyPageSidebar = () => {
     if (!window.confirm("로그아웃 하시겠습니까?")) return;
 
     try {
-      await axios.get("http://localhost/api/member/logout");
+      await axiosApi.get("/api/member/logout");
 
       alert("로그아웃 되었습니다.");
       navigate("/");

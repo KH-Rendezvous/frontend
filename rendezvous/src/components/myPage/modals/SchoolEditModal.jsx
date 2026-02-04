@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios"; // ★ axios 임포트 필수
+import { axiosApi } from "../../../api/axiosAPI";
 
 const SchoolEditModal = ({ currentSchool, onClose, onSave }) => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -21,7 +22,7 @@ const SchoolEditModal = ({ currentSchool, onClose, onSave }) => {
       }
 
       try {
-        const response = await axios.get("http://localhost/api/mypage/school", {
+        const response = await axiosApi.get("/api/mypage/school", {
           params: { keyword: searchTerm },
         });
 
@@ -36,7 +37,7 @@ const SchoolEditModal = ({ currentSchool, onClose, onSave }) => {
       }
     };
 
-    // 타자 칠 때마다 요청 너무 많이 가지 않게 0.3초 딜레이 (디바운싱 효과)
+    // 타자 칠 때마다 요청 너무 많이 가지 않게 0.1초 딜레이 (디바운싱 효과)
     const debounce = setTimeout(() => {
       fetchSchools();
     }, 100);
