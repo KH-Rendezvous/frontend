@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
-// import axios from "axios"; // 안 쓰면 지우기
 import { axiosApi } from "../../../api/axiosAPI";
 
-// 모달 및 컴포넌트 임포트 (경로는 네 프로젝트에 맞게 유지)
 import ProfileEditModal from "../modals/ProfileEditModal";
 import ProfilePreview from "../components/ProfilePreview";
 import InterestEditModal from "../modals/InterestEditModal";
@@ -92,7 +90,7 @@ const MyPageMain = () => {
               if (idx >= 0 && idx < 6) {
                 newImages[idx] = {
                   id: photo.photoId,
-                  url: `${axiosApi.defaults.baseURL}${photo.photoUrl}${photo.renameName}`,
+                  url: `${axiosApi.defaults.baseURL}${photo.photoUrl}`,
                   file: null,
                   order: photo.photoOrder,
                 };

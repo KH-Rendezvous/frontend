@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import InterestEditModal from "../../myPage/modals/InterestEditModal";
 import RelationModal from "../signup/RelationModal";
 import { axiosApi } from "../../../api/axiosAPI";
-import SignupPending from "./SignupPending";
+import { useNavigate } from "react-router-dom";
 
 const INTEREST_LIST = [
   "MBTI",
@@ -48,6 +48,8 @@ const INTEREST_LIST = [
 ];
 
 const SignupPage = () => {
+  const navigate = useNavigate();
+
   // 폼 데이터 상태 관리
   const [formData, setFormData] = useState({
     name: "",
@@ -70,8 +72,6 @@ const SignupPage = () => {
   const [isInterestModalOpen, setIsInterestModalOpen] = useState(false);
 
   const [isRelationModalOpen, setIsRelationModalOpen] = useState(false);
-
-  const [isSignupSuccess, setIsSignupSuccess] = useState(false);
 
   // 관심사 저장 핸들러 (모달에서 저장 버튼 눌렀을 때 실행됨)
   const handleInterestSave = (selectedInterests) => {
@@ -96,12 +96,27 @@ const SignupPage = () => {
     }
 
     try {
+      const checkRes = await axiosApi.get("/api/member/check", {
+        params: { type: "email", value: formData.email },
+      });
+
+      if (checkRes.data === 1) {
+        setErrors((prev) => ({
+          ...prev,
+          email: "이미 사용 중인 이메일입니다.",
+        }));
+        alert("이미 가입된 이메일입니다.");
+        return;
+      }
+
       const response = await axiosApi.post("/email/signup", {
         email: formData.email,
       });
 
       if (response.status === 200 && response.data === 1) {
-        alert("인증번호가 전송되었습니다. 이메일을 확인해주세요.");
+        alert(
+          "인증번호가 전송되었습니다.\n네트워크 상황에 따라 도착까지 최대 30초 소요될 수 있습니다.",
+        );
       } else {
         alert("메일 전송에 실패했습니다. 잠시 후 다시 시도해주세요.");
       }
@@ -159,6 +174,38 @@ const SignupPage = () => {
       }
     }
     return { valid: true };
+  };
+
+  const checkDuplicate = async (field, value) => {
+    // 값이 없거나, 이미 정규식 에러가 떠 있으면 중복 검사 안 함 (서버 요청 아까움)
+    if (!value || errors[field]) return;
+
+    try {
+      // 백엔드 API 호출 (GET /api/member/check?type=email&value=test@test.com)
+      // 백엔드 컨트롤러에서 type에 따라 분기 처리해서 count(*) 결과를 1 또는 0으로 리턴해줘야 함
+      const response = await axiosApi.get("/api/member/check", {
+        params: { type: field, value: value },
+      });
+
+      // 중복이면(1이면) 에러 세팅
+      if (response.data === 1) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: `이미 사용 중인 ${field === "email" ? "이메일" : field === "nickname" ? "닉네임" : "전화번호"}입니다.`,
+        }));
+      }
+    } catch (error) {
+      console.error("중복 검사 실패:", error);
+    }
+  };
+
+  // [추가] 포커스 나갈 때 실행될 함수
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    // 닉네임, 이메일, 전화번호만 검사
+    if (["nickname", "email", "phone"].includes(name)) {
+      checkDuplicate(name, value);
+    }
   };
 
   // 유효성 검사 함수
@@ -428,8 +475,6 @@ const SignupPage = () => {
       return;
     }
 
-    // ★ [추가] 월/일이 한 자리 수면 앞에 '0' 붙여주기 (Padding)
-    // 1 -> 01, 12 -> 12로 변환됨
     const fixedMonth = formData.birthMonth.padStart(2, "0");
     const fixedDay = formData.birthDay.padStart(2, "0");
 
@@ -471,8 +516,7 @@ const SignupPage = () => {
 
       // 8. 결과 처리
       if (response.data === 1) {
-        setIsSignupSuccess(true);
-        window.scrollTo(0, 0);
+        navigate("/signup-pending");
       } else {
         alert("가입 처리에 실패했습니다. (관리자 문의)");
       }
@@ -489,14 +533,9 @@ const SignupPage = () => {
     }
   };
 
-  if (isSignupSuccess) {
-    return <SignupPending />;
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-10">
       <div className="bg-white w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row border border-gray-100">
-        {/* --- 왼쪽: 기본 정보 입력 --- */}
         <div className="w-full md:w-1/2 p-8 md:p-12 space-y-6">
           <div className="text-center md:text-left">
             <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
@@ -547,6 +586,7 @@ const SignupPage = () => {
                       ? "border-red-500 focus:border-red-500"
                       : "border-gray-200 focus:border-[#EE4B6F]"
                   }`}
+                  onBlur={handleBlur}
                   onChange={handleChange}
                 />
                 {errors.nickname && (
@@ -574,6 +614,7 @@ const SignupPage = () => {
                         ? "border-red-500 focus:border-red-500"
                         : "border-gray-200 focus:border-[#EE4B6F]"
                     }`}
+                    onBlur={handleBlur}
                     onChange={handleChange}
                   />
                   <button
@@ -619,6 +660,7 @@ const SignupPage = () => {
                 name="phone"
                 value={formData.phone}
                 placeholder="(-)를 제외한 숫자만 입력"
+                onBlur={handleBlur}
                 className={`w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm focus:outline-none transition-all ${
                   errors.phone
                     ? "border-red-500 focus:border-red-500"

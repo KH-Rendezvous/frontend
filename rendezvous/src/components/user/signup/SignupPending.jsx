@@ -13,12 +13,10 @@ const SignupPending = () => {
           alt="Rendezvous"
           className="h-32 object-contain drop-shadow-sm"
         />
-        {/* 로고 아래 텍스트가 필요하면 추가, 없으면 생략 */}
       </div>
 
       {/* 2. 메인 카드 */}
       <div className="bg-white w-full max-w-[480px] rounded-[32px] shadow-2xl p-10 text-center border border-gray-100 relative overflow-hidden">
-        {/* 상단 장식용 배경 (선택사항 - 살짝 핑크빛) */}
         <div className="absolute top-0 left-0 w-full h-2 bg-[#EE4B6F]"></div>
 
         {/* 타이틀 영역 (양옆 라인 효과) */}
@@ -67,7 +65,7 @@ const SignupPending = () => {
 
         {/* 버튼 영역 */}
         <button
-          onClick={() => navigate("/")} // 메인 또는 로그인 페이지로 이동
+          onClick={() => navigate("/")}
           className="w-full py-4 bg-[#EE4B6F] hover:bg-[#D63A5C] text-white rounded-2xl font-bold text-lg shadow-lg shadow-pink-200 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
         >
           메인으로 이동
