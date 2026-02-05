@@ -5,9 +5,10 @@ import "./index.css";
 import HomePage from "./pages/home/HomePage";
 import Login from "./pages/user/Login";
 import Signup from "./pages/user/Signup";
+import SignupPending from "./components/user/signup/SignupPending";
 import AdminPage from "./pages/admin/AdminPage";
 import MyPage from "./pages/myPage/MyPage";
-import DiscoveryPage from "./pages/discovery/DiscoveryPage"; // ※ 주의: 여기엔 사이드바가 없고 내용만 있어야 함
+import DiscoveryPage from "./pages/discovery/DiscoveryPage";
 import AiManager from "./components/support/AiManager";
 import Places from "./components/support/Places";
 import ChatPage from "./pages/chat/ChatPage";
@@ -31,6 +32,7 @@ function App() {
       <Route path="/admin/*" element={<AdminPage />} />
       <Route path="/myPage" element={<MyPage />} />
       <Route path="/signUp" element={<Signup />} />
+      <Route path="/signup-pending" element={<SignupPending />} />
 
       {/* footer에 포함된 컨텐츠들 */}
       <Route path="/service-intro" element={<ServiceIntro />} />

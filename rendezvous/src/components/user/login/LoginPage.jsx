@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { axiosApi } from "../../../api/axiosAPI";
 
@@ -29,6 +29,14 @@ const LoginPage = () => {
     setIsChecked((prev) => ({ ...prev, [name]: checked }));
   };
 
+  useEffect(() => {
+    const savedEmail = localStorage.getItem("savedEmail");
+    if (savedEmail) {
+      setFormData((prev) => ({ ...prev, email: savedEmail }));
+      setIsChecked((prev) => ({ ...prev, saveEmail: true }));
+    }
+  }, []);
+
   // 로그인 요청 핸들러
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -46,14 +54,25 @@ const LoginPage = () => {
       if (response.data.result === 1) {
         const member = response.data.member;
 
+        if (member.memberStatus === "N") {
+          navigate("/signup-pending");
+          return;
+        }
+
         localStorage.setItem("loginMember", JSON.stringify(member));
 
         window.dispatchEvent(new Event("loginStateChange"));
 
-        alert("로그인 성공!");
+        if (isChecked.saveEmail) {
+          localStorage.setItem("savedEmail", formData.email);
+        } else {
+          localStorage.removeItem("savedEmail");
+        }
+
+        alert(`${member.nickname}님 환영합니다!`);
         navigate("/");
       } else {
-        alert("이메일 또는 비밀번호가 잘못 입력되었습니다.");
+        alert("이메일 또는 비밀번호를 다시 입력해주세요.");
       }
     } catch (error) {
       console.error(error);
