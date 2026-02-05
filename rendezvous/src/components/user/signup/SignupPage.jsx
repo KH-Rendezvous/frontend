@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import InterestEditModal from "../../myPage/modals/InterestEditModal";
 import RelationModal from "../signup/RelationModal";
 import { axiosApi } from "../../../api/axiosAPI";
+import SignupPending from "./SignupPending";
 
 const INTEREST_LIST = [
   "MBTI",
@@ -69,6 +70,8 @@ const SignupPage = () => {
   const [isInterestModalOpen, setIsInterestModalOpen] = useState(false);
 
   const [isRelationModalOpen, setIsRelationModalOpen] = useState(false);
+
+  const [isSignupSuccess, setIsSignupSuccess] = useState(false);
 
   // 관심사 저장 핸들러 (모달에서 저장 버튼 눌렀을 때 실행됨)
   const handleInterestSave = (selectedInterests) => {
@@ -468,8 +471,8 @@ const SignupPage = () => {
 
       // 8. 결과 처리
       if (response.data === 1) {
-        alert("가입 신청이 완료되었습니다! 로그인 페이지로 이동합니다.");
-        window.location.href = "/login";
+        setIsSignupSuccess(true);
+        window.scrollTo(0, 0);
       } else {
         alert("가입 처리에 실패했습니다. (관리자 문의)");
       }
@@ -485,6 +488,10 @@ const SignupPage = () => {
       }
     }
   };
+
+  if (isSignupSuccess) {
+    return <SignupPending />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-10">
@@ -929,7 +936,7 @@ const SignupPage = () => {
             <div className="text-center text-sm text-gray-500">
               이미 계정이 있으신가요?{" "}
               <a
-                href="/login"
+                href="/signIn"
                 className="text-[#EE4B6F] font-bold ml-1 hover:underline"
               >
                 로그인하기

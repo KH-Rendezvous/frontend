@@ -1,11 +1,10 @@
 import React, { useState } from "react";
-import axios from "axios";
+// import axios from "axios"; // 안 쓰면 삭제
 import { axiosApi } from "../../../api/axiosAPI";
 
 const DeleteAccountModal = ({ isOpen, onClose, memberNo }) => {
   const [isChecked, setIsChecked] = useState(false);
 
-  // 모달 닫힐 때 체크박스 초기화
   const handleClose = () => {
     setIsChecked(false);
     onClose();
@@ -14,17 +13,36 @@ const DeleteAccountModal = ({ isOpen, onClose, memberNo }) => {
   if (!isOpen) return null;
 
   const handleWithdraw = async () => {
-    if (!isChecked) return; // 체크 안 되어있으면 실행 안 함
+    // 1. 안전장치: 로그인 안 했으면 쫓아내기
+    if (!memberNo) {
+      alert("로그인이 필요한 서비스입니다.");
+      return;
+    }
+
+    if (!isChecked) return;
+
+    if (!window.confirm("정말 탈퇴하시겠습니까? 돌이킬 수 없습니다.")) return;
 
     try {
-      // 서버로 탈퇴 요청 (PUT)
+      // 2. 서버로 탈퇴 요청 (PUT)
+      // data: { memberNo: memberNo } 이렇게 보내는 게 PUT의 정석은 아니지만,
+      // 네 백엔드(@RequestBody Map param)가 그렇게 받도록 짜여 있으니 그대로 감.
       const response = await axiosApi.put("/api/mypage/withdraw", {
-        memberNo: memberNo, // 받아온 회원 번호 전송
+        memberNo: memberNo,
       });
 
+      // 백엔드가 int result (1) 리턴함
       if (response.data > 0) {
-        alert("회원 탈퇴가 완료되었습니다.");
-        // 메인 페이지로 이동 (새로고침 효과로 로그아웃 처리 확실하게)
+        alert("회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다.");
+
+        // [중요] 3. 클라이언트 흔적 지우기 (로그아웃 처리)
+        localStorage.removeItem("loginMember");
+        localStorage.removeItem("accessToken");
+
+        // 4. 헤더 업데이트 이벤트 발송
+        window.dispatchEvent(new Event("loginStateChange"));
+
+        // 5. 메인으로 강제 이동
         window.location.href = "/";
       } else {
         alert("탈퇴 처리에 실패했습니다. 다시 시도해 주세요.");
@@ -36,6 +54,7 @@ const DeleteAccountModal = ({ isOpen, onClose, memberNo }) => {
   };
 
   return (
+    // ... JSX는 디자인 완벽해서 그대로 둠 ...
     <div className="fixed inset-0 z-[9999] flex items-center justify-center">
       {/* 배경: 블러 + 어둡게 */}
       <div
@@ -143,11 +162,11 @@ const DeleteAccountModal = ({ isOpen, onClose, memberNo }) => {
             onClick={handleWithdraw}
             disabled={!isChecked}
             className={`flex-[2] py-3.5 px-6 rounded-xl text-white font-bold shadow-lg transition-all duration-200
-              ${
-                isChecked
-                  ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 hover:-translate-y-0.5 cursor-pointer"
-                  : "bg-gray-300 cursor-not-allowed shadow-none"
-              }`}
+            ${
+              isChecked
+                ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 hover:-translate-y-0.5 cursor-pointer"
+                : "bg-gray-300 cursor-not-allowed shadow-none"
+            }`}
           >
             탈퇴하기
           </button>

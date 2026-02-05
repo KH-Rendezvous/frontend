@@ -1,54 +1,51 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+// import axios from "axios"; // 안 쓰면 삭제
 import { axiosApi } from "../../../api/axiosAPI";
 
-const BlockListModal = ({ isOpen, onClose }) => {
-  // 1. 초기값은 빈 배열로 시작
+const BlockListModal = ({ isOpen, onClose, memberNo }) => {
   const [blockList, setBlockList] = useState([]);
 
-  // 2. 모달이 열릴 때(isOpen이 true가 될 때)마다 DB에서 목록 긁어오기
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && memberNo) {
       getBlockList();
     }
-  }, [isOpen]);
+  }, [isOpen, memberNo]);
 
-  // 목록 조회 함수 (수정본)
   const getBlockList = async () => {
     try {
-      const response = await axiosApi.get("/api/block/list");
+      const response = await axiosApi.get("/api/block/list", {
+        params: { memberNo: memberNo },
+      });
 
-      console.log("서버 응답 데이터:", response.data); // F12 콘솔 찍어봐라 뭐가 오는지
+      console.log("서버 응답 데이터:", response.data);
 
-      // ★ 여기가 핵심: 데이터가 배열(Array)일 때만 넣고, 아니면 빈 배열 넣기
       if (Array.isArray(response.data)) {
         setBlockList(response.data);
       } else {
-        console.warn("데이터가 배열이 아님. 로그인 풀렸거나 에러임.");
-        setBlockList([]); // 빈 배열로 초기화해서 에러 방지
+        setBlockList([]);
       }
     } catch (error) {
       console.error("차단 목록 로딩 실패:", error);
-      setBlockList([]); // 에러 나도 빈 배열 넣어줘야 화면 안 깨짐
+      setBlockList([]);
     }
   };
 
-  // 3. 차단 해제 핸들러 (DB 삭제 요청)
   const handleUnblock = async (blockId) => {
     if (!window.confirm("정말 차단을 해제하시겠습니까?")) return;
 
     try {
-      // DELETE 요청은 body를 보낼 때 { data: { ... } } 형태로 감싸야 함
       const response = await axiosApi.delete("/api/block/delete", {
-        data: { blockId: blockId },
+        data: {
+          blockId: blockId,
+          memberNo: memberNo,
+        },
       });
 
-      if (response.data === "success") {
+      if (response.data === "success" || response.data === 1) {
         alert("해제되었습니다.");
-        // 성공하면 목록에서 바로 지워서 새로고침 효과 냄 (UI 반응 속도 UP)
         setBlockList((prev) => prev.filter((item) => item.blockId !== blockId));
       } else {
-        alert("해제 실패 (로그인 세션 확인 필요)");
+        alert("해제 실패");
       }
     } catch (error) {
       console.error("차단 해제 에러:", error);
@@ -96,11 +93,8 @@ const BlockListModal = ({ isOpen, onClose }) => {
                       {item.targetName || "이름 없음"}
                     </span>
                     <span className="text-xs text-gray-500 font-medium">
-                      {/* DB 컬럼값 null 체크 */}
                       {item.targetPhone || item.targetEmail || "정보 없음"}
                     </span>
-                    {/* (선택사항) 등록일 보여주고 싶으면 주석 해제 */}
-                    {/* <span className="text-[10px] text-gray-300 mt-1">{item.createDate}</span> */}
                   </div>
 
                   <button

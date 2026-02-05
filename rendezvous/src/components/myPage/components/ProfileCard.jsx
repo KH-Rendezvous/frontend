@@ -135,9 +135,9 @@ const ProfileCard = ({ userData }) => {
           className="absolute bottom-0 left-0 w-full p-5 pt-20 bg-gradient-to-t from-black/80 via-black/40 to-transparent text-white z-10 cursor-pointer"
           onClick={() => setIsExpanded(!isExpanded)}
         >
-          {/* 🔥 [수정] 니가 원한 대로 "25"로 원상복구 했다. */}
           <h2 className="text-3xl font-bold drop-shadow-md">
-            {userData.nickname || "이름없음"}, {userData.age || "25"}
+            {userData.nickname || "이름없음"},{" "}
+            {userData.age ? userData.age : "?"}
           </h2>
           <div className="flex items-center gap-1 mt-1 text-sm font-medium opacity-90">
             <span>🏠</span>

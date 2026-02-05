@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+// import axios from "axios"; // 안 쓰면 지우기
+import { axiosApi } from "../../../api/axiosAPI";
 
-// 모달 및 컴포넌트 임포트
+// 모달 및 컴포넌트 임포트 (경로는 네 프로젝트에 맞게 유지)
 import ProfileEditModal from "../modals/ProfileEditModal";
 import ProfilePreview from "../components/ProfilePreview";
 import InterestEditModal from "../modals/InterestEditModal";
@@ -9,7 +10,6 @@ import SchoolEditModal from "../modals/SchoolEditModal";
 import RegionEditModal from "../modals/RegionEditModal";
 import ProfileListItem from "../components/ProfileListItem";
 import ProfileImageGrid from "../components/ProfileImageGrid";
-import { axiosApi } from "../../../api/axiosAPI";
 
 // 관심사 포맷팅 함수
 const formatInterests = (items) => {
@@ -30,6 +30,12 @@ const MyPageMain = () => {
   const [masterCodes, setMasterCodes] = useState([]);
   const [profileImages, setProfileImages] = useState(Array(6).fill(null));
   const [deleteList, setDeleteList] = useState([]);
+
+  // [중요] 로그인한 회원 정보 가져오기 (없으면 null)
+  const [loginMember, setLoginMember] = useState(() => {
+    const stored = localStorage.getItem("loginMember");
+    return stored ? JSON.parse(stored) : null;
+  });
 
   const [userData, setUserData] = useState({
     nickname: "",
@@ -56,27 +62,29 @@ const MyPageMain = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 공통 코드(MASTER_CODES) 가져오기
+        // 공통 코드 가져오기
         try {
           const codeRes = await axiosApi.get("/api/mypage/codes");
           if (codeRes.data.result === "success") {
-            console.log(
-              "공통 코드 로드 완료:",
-              codeRes.data.list.length + "개",
-            );
             setMasterCodes(codeRes.data.list);
           }
         } catch (e) {
-          console.warn("공통 코드 로딩 실패 (백엔드 확인 필요)");
+          console.warn("공통 코드 로딩 실패");
         }
 
-        // 내 프로필 정보 가져오기
-        const profileRes = await axiosApi.get("/api/mypage/profile");
+        // [수정] 내 프로필 정보 가져오기 (회원 번호 실어서 보내기)
+        // 로그인 안 되어있으면 0이나 1을 보내거나, 아예 요청을 막을 수도 있음
+        const targetMemberNo = loginMember ? loginMember.memberNo : 0;
+
+        const profileRes = await axiosApi.get("/api/mypage/profile", {
+          params: { memberNo: targetMemberNo }, // 파라미터로 전달
+        });
+
         if (profileRes.data.result === "success") {
           const dbData = profileRes.data.data;
           setOriginalNickname(dbData.nickname || "");
 
-          //DB 이미지 데이터를 State에 매핑하는 로직
+          // DB 이미지 데이터 매핑
           const newImages = Array(6).fill(null);
           if (dbData.profileList && dbData.profileList.length > 0) {
             dbData.profileList.forEach((photo) => {
@@ -92,31 +100,19 @@ const MyPageMain = () => {
             });
           }
           setProfileImages(newImages);
-
           setDeleteList([]);
-
-          const genderCode = dbData.gender
-            ? String(dbData.gender).trim().toUpperCase()
-            : "";
 
           setUserData({
             nickname: dbData.nickname || "",
             intro: dbData.intro || "",
+            age: dbData.age,
             interests: dbData.interestList || [],
             height: dbData.height || "",
             mbti: dbData.mbti || "",
-
-            // 학교 정보
             school: dbData.schoolName || "",
             schNo: dbData.schNo || 0,
-
-            region:
-              dbData.regionId === 0 || !dbData.regionName
-                ? ""
-                : dbData.regionName,
+            region: dbData.regionName || "",
             regionId: dbData.regionId || 0,
-
-            // 나머지 드롭다운 값들
             relationship: dbData.relationship || "",
             affection: dbData.affection || "",
             education: dbData.education || "",
@@ -140,29 +136,20 @@ const MyPageMain = () => {
     };
 
     fetchData();
-  }, []);
+  }, [loginMember]);
 
-  // 카테고리별 옵션 이름만 뽑아주는 헬퍼 함수
   const getOptions = (categoryName) => {
     return masterCodes
-      .filter((code) => code.category === categoryName) // 해당 카테고리만 필터링
-      .map((code) => code.codeName); // 이름만 문자열 배열로 변환
+      .filter((code) => code.category === categoryName)
+      .map((code) => code.codeName);
   };
 
-  // 설정 옵션 (상수)
   const MODAL_OPTIONS = {
-    // DB에 없는 항목들은 기존대로 유지
     height: { title: "키", type: "number" },
     gender: { title: "성별", type: "select", options: ["남성", "여성"] },
     school: { title: "학교", type: "text" },
     region: { title: "거주 지역", type: "text" },
-
-    // DB 데이터 사용 (getOptions 함수 이용)
-    mbti: {
-      title: "MBTI",
-      type: "select",
-      options: getOptions("MBTI"),
-    },
+    mbti: { title: "MBTI", type: "select", options: getOptions("MBTI") },
     relationship: {
       title: "내가 찾는 관계",
       type: "select",
@@ -173,36 +160,16 @@ const MyPageMain = () => {
       type: "select",
       options: getOptions("애정표현 스타일"),
     },
-    education: {
-      title: "학력",
-      type: "select",
-      options: getOptions("학력"),
-    },
+    education: { title: "학력", type: "select", options: getOptions("학력") },
     contact: {
       title: "연락 스타일",
       type: "select",
       options: getOptions("연락 스타일"),
     },
-    zodiac: {
-      title: "별자리",
-      type: "select",
-      options: getOptions("별자리"),
-    },
-    exercise: {
-      title: "운동",
-      type: "select",
-      options: getOptions("운동"),
-    },
-    drinking: {
-      title: "음주",
-      type: "select",
-      options: getOptions("음주"),
-    },
-    smoking: {
-      title: "흡연",
-      type: "select",
-      options: getOptions("흡연"),
-    },
+    zodiac: { title: "별자리", type: "select", options: getOptions("별자리") },
+    exercise: { title: "운동", type: "select", options: getOptions("운동") },
+    drinking: { title: "음주", type: "select", options: getOptions("음주") },
+    smoking: { title: "흡연", type: "select", options: getOptions("흡연") },
     social: {
       title: "소셜 미디어",
       type: "select",
@@ -210,7 +177,6 @@ const MyPageMain = () => {
     },
   };
 
-  // 핸들러 함수들
   const openModal = (key) => {
     const config = MODAL_OPTIONS[key];
     if (config) {
@@ -247,22 +213,26 @@ const MyPageMain = () => {
       school: schoolObj.SCH_NAME,
       schNo: schoolObj.SCH_NO,
     }));
-
-    // 모달 닫기
     setShowSchoolModal(false);
   };
 
   const handleSaveRegion = (regionObj) => {
     setUserData((prev) => ({
       ...prev,
-      region: regionObj.FULL_ADDR, // 화면 보여주기용
-      regionId: regionObj.REGION_ID, // DB 저장용
+      region: regionObj.FULL_ADDR,
+      regionId: regionObj.REGION_ID,
     }));
     setShowRegionModal(false);
   };
 
-  // [수정하기] 버튼 클릭 시 (백엔드 전송)
+  // [수정] 제출 핸들러
   const handleFinalSubmit = async () => {
+    // 1. 로그인 체크
+    if (!loginMember) {
+      alert("로그인이 필요한 서비스입니다.");
+      return;
+    }
+
     const currentPhotoCount = profileImages.filter(
       (img) => img !== null,
     ).length;
@@ -276,7 +246,6 @@ const MyPageMain = () => {
       return;
     }
 
-    // 닉네임 중복 체크
     if (userData.nickname !== originalNickname) {
       try {
         const checkRes = await axiosApi.get("/api/mypage/nickname/check", {
@@ -295,12 +264,11 @@ const MyPageMain = () => {
     if (!window.confirm("프로필을 수정하시겠습니까?")) return;
 
     try {
-      // 1. FormData 생성
       const formData = new FormData();
 
-      // 2. 텍스트 데이터 포장
+      // [수정] 현재 로그인한 회원 번호 사용
       const textData = {
-        memberNo: 1, // 테스트용 번호
+        memberNo: loginMember.memberNo, // LocalStorage에서 가져온 값
         nickname: userData.nickname,
         intro: userData.intro,
         mbti: userData.mbti,
@@ -319,18 +287,14 @@ const MyPageMain = () => {
         schNo: userData.schNo ? userData.schNo : null,
       };
 
-      // JSON 객체를 Blob으로 변환하여 추가 (Content-Type: application/json 명시)
       formData.append(
         "profileText",
         new Blob([JSON.stringify(textData)], { type: "application/json" }),
       );
 
-      // 3. 이미지 파일 추가
       profileImages.forEach((img, index) => {
-        // 새 파일이 있는 경우에만 'images' 키로 추가
         if (img && img.file) {
           formData.append("images", img.file);
-          // 순서 정보도 같이 보냄 (파일명 매칭용 또는 DB 저장용)
           formData.append("orders", index + 1);
         }
       });
@@ -341,7 +305,6 @@ const MyPageMain = () => {
         });
       }
 
-      // 4. 서버 전송 (Multipart)
       const response = await axiosApi.post("/api/mypage/profile", formData, {
         headers: { "Content-Type": undefined },
       });
@@ -359,7 +322,6 @@ const MyPageMain = () => {
     }
   };
 
-  // 화면 렌더링 데이터 구조
   const profileSections = [
     {
       title: "키",
@@ -472,7 +434,7 @@ const MyPageMain = () => {
           label: userData.gender,
           value: "",
           noIcon: true,
-          readOnly: true, // 수정 불가
+          readOnly: true,
         },
       ],
     },
@@ -480,7 +442,6 @@ const MyPageMain = () => {
 
   return (
     <div className="w-full max-w-[720px] mx-auto pt-10 pb-20">
-      {/* 탭 버튼 */}
       <div className="flex justify-center mb-8">
         <div className="bg-gray-100 rounded-full p-1 flex">
           <button
@@ -509,7 +470,6 @@ const MyPageMain = () => {
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 md:p-14">
         {activeTab === "edit" ? (
           <>
-            {/* 복잡한 이미지 그리드 코드를 컴포넌트 하나로 대체 */}
             <ProfileImageGrid
               images={profileImages}
               setImages={setProfileImages}
@@ -522,11 +482,7 @@ const MyPageMain = () => {
             </p>
 
             <div className="mb-10">
-              {" "}
-              {/* 여백 넉넉하게 */}
               <div className="flex justify-between mb-3">
-                {" "}
-                {/* mb-2 -> mb-3 */}
                 <h3 className="font-bold text-gray-800 text-lg">닉네임</h3>
                 <span className="text-xs text-gray-400">
                   {userData.nickname.length}/10
@@ -545,7 +501,6 @@ const MyPageMain = () => {
               </p>
             </div>
 
-            {/* 자기소개 */}
             <div className="mb-10">
               <div className="flex justify-between items-end mb-2 border-b border-gray-200 pb-2">
                 <h3 className="font-bold text-gray-800 text-lg">자기 소개</h3>
@@ -565,7 +520,6 @@ const MyPageMain = () => {
               </div>
             </div>
 
-            {/* 관심사 (특별한 포맷이라 별도 처리) */}
             <div className="mb-8">
               <h4 className="text-lg font-bold text-gray-800 mb-3">관심사</h4>
               <div
@@ -581,7 +535,6 @@ const MyPageMain = () => {
               </div>
             </div>
 
-            {/* 상세 정보 섹션들 */}
             <div className="space-y-8 mb-10">
               {profileSections.map((section, idx) => (
                 <div key={idx}>
@@ -595,7 +548,6 @@ const MyPageMain = () => {
                         item={item}
                         onClick={() => {
                           if (item.readOnly) return;
-
                           if (item.key === "school") {
                             setShowSchoolModal(true);
                           } else if (item.key === "region") {
@@ -611,7 +563,6 @@ const MyPageMain = () => {
               ))}
             </div>
 
-            {/* 수정 버튼 */}
             <div className="mt-8 flex justify-center">
               <button
                 className="bg-[#EE4B6F] hover:bg-[#ff3b60] text-white font-bold py-3 px-10 rounded-full shadow-md transition-all text-sm"
@@ -622,14 +573,11 @@ const MyPageMain = () => {
             </div>
           </>
         ) : (
-          /* 미리보기 탭 내용*/
           <ProfilePreview
             data={{ ...userData, profileImages: profileImages }}
           />
         )}
       </div>
-
-      {/* --- 모달들 --- */}
 
       {showInterestModal && (
         <InterestEditModal

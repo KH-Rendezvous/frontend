@@ -1,16 +1,15 @@
 import React, { useState } from "react";
-import axios from "axios";
+// import axios from "axios"; // 안 쓰면 삭제
 import { axiosApi } from "../../../api/axiosAPI";
 
-const BlockModal = ({ isOpen, onClose }) => {
-  // 1. 입력값 관리용 State
+// [수정 1] memberNo props 추가
+const BlockModal = ({ isOpen, onClose, memberNo }) => {
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
     email: "",
   });
 
-  // 입력값 변경 핸들러
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -19,9 +18,12 @@ const BlockModal = ({ isOpen, onClose }) => {
     }));
   };
 
-  // 2. 전송 버튼 클릭 핸들러 (백엔드 통신)
   const handleSubmit = async () => {
-    // 유효성 검사: 최소한 정보 하나는 있어야 함
+    if (!memberNo) {
+      alert("로그인이 필요한 기능입니다.");
+      return;
+    }
+
     if (!formData.name && !formData.phone && !formData.email) {
       alert("차단할 사람의 정보를 하나라도 입력해주세요.");
       return;
@@ -30,21 +32,23 @@ const BlockModal = ({ isOpen, onClose }) => {
     if (!window.confirm("입력한 연락처를 차단하시겠습니까?")) return;
 
     try {
-      // ★ 백엔드 DTO 필드명(targetName 등)에 맞춰서 매핑해서 보냄
       const response = await axiosApi.post("/api/block/insert", {
+        memberNo: memberNo,
         targetName: formData.name,
         targetPhone: formData.phone,
         targetEmail: formData.email,
       });
 
-      if (response.data === "success") {
+      if (
+        response.data === 1 ||
+        response.data === "success" ||
+        response.data.result === "success"
+      ) {
         alert("성공적으로 차단되었습니다.");
-        setFormData({ name: "", phone: "", email: "" }); // 입력창 초기화
-        onClose(); // 모달 닫기
-      } else if (response.data === "login_required") {
-        alert("로그인이 필요합니다.");
+        setFormData({ name: "", phone: "", email: "" });
+        onClose();
       } else {
-        alert("차단 등록에 실패했습니다.");
+        alert("차단 등록에 실패했습니다. (이미 차단되었거나 오류)");
       }
     } catch (error) {
       console.error("차단 등록 에러:", error);
@@ -55,17 +59,14 @@ const BlockModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    // 1. 배경 (검은색 반투명) - 클릭하면 닫히게 처리
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
       onClick={onClose}
     >
-      {/* 2. 모달 창 본문 */}
       <div
         className="bg-white w-[90%] max-w-md rounded-lg shadow-lg overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* --- 폼 시작 --- */}
         <div className="flex flex-col">
           {/* 이름 섹션 */}
           <div className="bg-gray-100 px-5 py-3 border-y border-gray-200">
@@ -96,7 +97,7 @@ const BlockModal = ({ isOpen, onClose }) => {
             <div className="px-5 pb-4">
               <input
                 type="tel"
-                name="phone" // ★ name 속성 추가
+                name="phone"
                 value={formData.phone}
                 onChange={handleChange}
                 placeholder="전화번호 입력 (- 없이 숫자만 입력)"
@@ -111,7 +112,7 @@ const BlockModal = ({ isOpen, onClose }) => {
             <div className="px-5 pb-4">
               <input
                 type="email"
-                name="email" // ★ name 속성 추가
+                name="email"
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="example@email.com"
@@ -125,7 +126,7 @@ const BlockModal = ({ isOpen, onClose }) => {
         <div className="p-5 bg-gray-50 border-t border-gray-200">
           <button
             className="w-full bg-[#ff4b6e] hover:bg-[#ff3b60] text-white font-bold py-3 rounded-lg transition-colors"
-            onClick={handleSubmit} // ★ 클릭 시 전송 함수 실행
+            onClick={handleSubmit}
           >
             전송
           </button>
