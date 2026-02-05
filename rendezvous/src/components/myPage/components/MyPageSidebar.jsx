@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
-import axios from "axios";
+// import axios from "axios"; // 안 쓰면 삭제
 import { axiosApi } from "../../../api/axiosAPI";
 
 // 모달 컴포넌트들 임포트
@@ -14,16 +14,66 @@ import DeleteAccountModal from "../modals/DeleteAccountModal";
 
 const MyPageSidebar = () => {
   const navigate = useNavigate();
-  const memberNo = 1;
+
+  // [수정 1] 로컬스토리지에서 내 정보 꺼내기
+  const [loginMember, setLoginMember] = useState(() => {
+    const stored = localStorage.getItem("loginMember");
+    return stored ? JSON.parse(stored) : null;
+  });
+
+  // 로그인 안 됐으면 0 (또는 튕겨내기)
+  const memberNo = loginMember ? loginMember.memberNo : 0;
+
+  // 상태 초기값 (DB에서 불러오기 전까지는 기본값)
   const [distance, setDistance] = useState(100);
   const [ageRange, setAgeRange] = useState([19, 50]);
+  const [gender, setGender] = useState("여성"); // 이건 DB 값 보고 '남성'/'여성' 세팅
+  const [visibility, setVisibility] = useState("A");
+
+  // 모달 상태들
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBlockListModalOpen, setIsBlockListModalOpen] = useState(false);
   const [isQnaModalOpen, setIsQnaModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isGenderModalOpen, setIsGenderModalOpen] = useState(false);
-  const [gender, setGender] = useState("여성");
-  const [visibility, setVisibility] = useState("A");
+
+  // [수정 2] 페이지 로드 시 DB에 저장된 내 설정값 가져오기
+  useEffect(() => {
+    if (!memberNo) return;
+
+    const fetchMySettings = async () => {
+      try {
+        // 기존에 만든 프로필 조회 API 활용 (여기에 설정값도 다 들어있음)
+        const response = await axiosApi.get("/api/mypage/profile", {
+          params: { memberNo: memberNo },
+        });
+
+        if (response.data.result === "success") {
+          const data = response.data.data;
+
+          // 1. 거리 설정 (null이면 100으로 간주)
+          setDistance(data.searchDistance || 100);
+
+          // 2. 나이 설정
+          const minAge = data.targetMinAge || 19;
+          const maxAge = data.targetMaxAge || 50;
+          setAgeRange([minAge, maxAge]);
+
+          // 3. 공개 범위 (A: 전체, P: 비공개)
+          setVisibility(data.profileOpen || "A");
+
+          // 4. 보고 싶은 성별 (M: 남성, F: 여성) - 화면 표시용 한글 변환
+          if (data.targetGender === "M") setGender("남성");
+          else if (data.targetGender === "F") setGender("여성");
+          else setGender("모든 성별"); // 혹시 A가 있다면
+        }
+      } catch (error) {
+        console.error("설정 정보 로딩 실패:", error);
+      }
+    };
+
+    fetchMySettings();
+  }, [memberNo]);
 
   // --- 거리 관련 핸들러 ---
   const handleDistanceChange = (value) => {
@@ -31,6 +81,8 @@ const MyPageSidebar = () => {
   };
 
   const handleDistanceAfterChange = async (value) => {
+    if (!memberNo) return; // 로그인 안 했으면 중단
+
     const payloadDistance = value === 100 ? null : value;
     console.log("DB로 전송할 거리:", payloadDistance);
 
@@ -57,14 +109,11 @@ const MyPageSidebar = () => {
   };
 
   const handleAgeAfterChange = async (value) => {
+    if (!memberNo) return;
+
     const minAge = value[0];
     let maxAge = value[1];
-
     const payloadMaxAge = maxAge === 50 ? null : maxAge;
-
-    console.log(
-      `DB로 전송할 연령대: ${minAge}세 ~ ${payloadMaxAge === null ? "제한 없음" : payloadMaxAge + "세"}`,
-    );
 
     try {
       const response = await axiosApi.put("/api/mypage/age", {
@@ -85,7 +134,9 @@ const MyPageSidebar = () => {
 
   // --- 성별 변경 핸들러 ---
   const handleGenderSave = async (newGenderKor) => {
-    let code = "A";
+    if (!memberNo) return;
+
+    let code = "A"; // 기본값
     if (newGenderKor === "남성") code = "M";
     else if (newGenderKor === "여성") code = "F";
 
@@ -105,10 +156,10 @@ const MyPageSidebar = () => {
 
   // --- 공개범위 핸들러 ---
   const handleVisibilityChange = async (e) => {
-    const newCode = e.target.value; // 'A' or 'P'
-    const oldCode = visibility; // 실패 시 복구용으로 저장
+    if (!memberNo) return;
 
-    console.log("변경할 공개범위:", newCode);
+    const newCode = e.target.value; // 'A' or 'P'
+    const oldCode = visibility;
 
     setVisibility(newCode);
 
@@ -118,9 +169,7 @@ const MyPageSidebar = () => {
         profileOpen: newCode,
       });
 
-      if (response.data.result === "success") {
-        console.log("✅ 공개범위 서버 저장 완료");
-      } else {
+      if (response.data.result !== "success") {
         alert("저장 실패");
         setVisibility(oldCode);
       }
@@ -134,12 +183,23 @@ const MyPageSidebar = () => {
     if (!window.confirm("로그아웃 하시겠습니까?")) return;
 
     try {
+      // 1. 서버 세션 날리기
       await axiosApi.get("/api/member/logout");
+
+      // 2. 클라이언트 정리
+      localStorage.removeItem("loginMember");
+      localStorage.removeItem("accessToken");
+
+      // 3. 이벤트 발송 (헤더 상태 변경용)
+      window.dispatchEvent(new Event("loginStateChange"));
 
       alert("로그아웃 되었습니다.");
       navigate("/");
     } catch (error) {
       console.error("로그아웃 실패", error);
+      localStorage.removeItem("loginMember");
+      window.dispatchEvent(new Event("loginStateChange"));
+      navigate("/");
     }
   };
 
@@ -249,7 +309,7 @@ const MyPageSidebar = () => {
               <Slider
                 range
                 min={19}
-                max={50} // 최댓값 50
+                max={50}
                 value={ageRange}
                 onChange={handleAgeChange}
                 onChangeComplete={handleAgeAfterChange}
@@ -267,7 +327,6 @@ const MyPageSidebar = () => {
                   rail: { backgroundColor: "#e5e7eb", height: 4 },
                 }}
               />
-              {/* 연령대 하단 라벨 추가 */}
               <div className="flex justify-between text-xs text-gray-400 mt-2">
                 <span>19세</span>
                 <span>제한 없음</span>
@@ -276,7 +335,7 @@ const MyPageSidebar = () => {
           </div>
         </div>
 
-        {/* 3. 프로필 공개 설정 (기존 코드 유지) */}
+        {/* 3. 프로필 공개 설정 */}
         <div className="mb-8">
           <h3 className="text-[15px] font-bold text-gray-800 mb-2 border-b border-gray-800 pb-3">
             프로필 공개 설정
@@ -319,7 +378,7 @@ const MyPageSidebar = () => {
           </label>
         </div>
 
-        {/* 4. 차단 설정 & 하단 버튼들 (기존 코드 유지) */}
+        {/* 4. 차단 설정 & 하단 버튼들 */}
         <div className="mb-10">
           <h3 className="text-[15px] font-bold text-gray-800 mb-2 border-b border-gray-800 pb-3">
             차단 설정
@@ -366,17 +425,23 @@ const MyPageSidebar = () => {
         </div>
       </div>
 
-      {/* 모달 컴포넌트들 */}
-      <BlockModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      {/* 모달 컴포넌트들 (memberNo prop 전달) */}
+      <BlockModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        memberNo={memberNo}
+      />
       <BlockListModal
         isOpen={isBlockListModalOpen}
         onClose={() => setIsBlockListModalOpen(false)}
+        memberNo={memberNo}
       />
       <GenderModal
         isOpen={isGenderModalOpen}
         onClose={() => setIsGenderModalOpen(false)}
         currentGender={gender}
-        onSave={handleGenderSave}
+        memberNo={memberNo}
+        onSave={(newGender) => setGender(newGender)}
       />
       <QnaModal
         isOpen={isQnaModalOpen}

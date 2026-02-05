@@ -1,13 +1,51 @@
 import React, { useState, useEffect } from "react";
+// import axios from "axios"; // 안 쓰면 삭제
+import { axiosApi } from "../../../api/axiosAPI";
 
-const GenderModal = ({ isOpen, onClose, currentGender, onSave }) => {
-  // 모달 내부에서만 쓸 임시 선택값 (저장 누르기 전까지는 반영 안 됨)
+const GenderModal = ({ isOpen, onClose, currentGender, onSave, memberNo }) => {
+  // 모달 내부 선택값 (초기값은 부모가 준 현재 성별)
   const [selected, setSelected] = useState(currentGender);
 
-  // 모달 열릴 때마다 부모의 현재 설정값을 가져옴
+  // 모달 열릴 때마다 부모 값(currentGender)과 동기화
   useEffect(() => {
-    setSelected(currentGender);
+    if (currentGender === "전체") {
+      setSelected("모든 성별");
+    } else {
+      setSelected(currentGender);
+    }
   }, [isOpen, currentGender]);
+
+  // 저장 핸들러 (API 호출 로직 내장)
+  const handleSave = async () => {
+    if (!memberNo) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    // 1. 서버에 보낼 코드로 변환 (UI 텍스트 -> DB 코드)
+    let code = "A";
+    if (selected === "남성") code = "M";
+    else if (selected === "여성") code = "F";
+    // "모든 성별"이면 기본값 "A"
+
+    try {
+      // 2. 서버 통신
+      const response = await axiosApi.put("/api/mypage/gender", {
+        memberNo: memberNo,
+        targetGender: code,
+      });
+
+      if (response.data.result === "success") {
+        onSave(selected);
+        onClose();
+      } else {
+        alert("성별 변경 실패");
+      }
+    } catch (error) {
+      console.error("성별 변경 에러:", error);
+      alert("서버 오류가 발생했습니다.");
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -40,7 +78,7 @@ const GenderModal = ({ isOpen, onClose, currentGender, onSave }) => {
                 {option}
               </span>
 
-              {/* 실제 라디오 버튼은 숨기고 커스텀 UI 보여주기 */}
+              {/* 라디오 버튼 (숨김) */}
               <input
                 type="radio"
                 name="gender"
@@ -50,7 +88,7 @@ const GenderModal = ({ isOpen, onClose, currentGender, onSave }) => {
                 className="hidden"
               />
 
-              {/* 선택됐을 때만 체크 표시 보임 */}
+              {/* 커스텀 체크 표시 */}
               {selected === option && (
                 <span className="text-[#EE4B6F] font-bold text-lg">✓</span>
               )}
@@ -62,10 +100,7 @@ const GenderModal = ({ isOpen, onClose, currentGender, onSave }) => {
         <div className="p-4 bg-gray-50">
           <button
             className="w-full bg-[#ff4b6e] hover:bg-[#ff3b60] text-white font-bold py-3 rounded-xl transition-colors shadow-sm"
-            onClick={() => {
-              onSave(selected); // 부모한테 변경된 값 전달
-              onClose(); // 모달 닫기
-            }}
+            onClick={handleSave}
           >
             확인
           </button>

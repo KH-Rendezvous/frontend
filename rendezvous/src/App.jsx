@@ -3,7 +3,7 @@ import "./index.css";
 
 // 페이지 컴포넌트들
 import HomePage from "./pages/home/HomePage";
-import LoginPage from "./pages/user/LoginPage";
+import Login from "./pages/user/Login";
 import Signup from "./pages/user/Signup";
 import AdminPage from "./pages/admin/AdminPage";
 import MyPage from "./pages/myPage/MyPage";
@@ -26,7 +26,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="/signIn" element={<LoginPage />} />
+      <Route path="/signIn" element={<Login />} />
 
       <Route path="/admin/*" element={<AdminPage />} />
       <Route path="/myPage" element={<MyPage />} />
