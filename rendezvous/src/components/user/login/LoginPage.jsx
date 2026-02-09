@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { axiosApi } from "../../../api/axiosAPI";
 
 const LoginPage = () => {
@@ -49,54 +49,89 @@ const LoginPage = () => {
     }
 
     try {
-      const response = await axiosApi.post("/api/member/login", formData);
+      const loginPayload = {
+        email: formData.email,
+        password: formData.password,
+      };
 
+      // 2. 로그인 요청 전송
+      const response = await axiosApi.post("/api/member/login", loginPayload);
+
+      // 3. 성공 처리
       if (response.data.result === 1) {
-        // 1. 서버에서 받은 토큰과 회원 정보 추출
         const { accessToken, refreshToken, member } = response.data;
 
-        // 2. 미승인된 회원이면 튕겨내기
+        // 미승인 회원 처리
         if (member.memberStatus === "N") {
           navigate("/signup-pending");
           return;
         }
 
-        // 3. Access Token은 무조건 로컬 스토리지에 저장 (API 통신용)
+        // 토큰 및 정보 저장
         localStorage.setItem("accessToken", accessToken);
-
-        // 4. 회원 정보 저장 (화면에 닉네임 표시용)
         localStorage.setItem("loginMember", JSON.stringify(member));
 
-        // 5. [핵심] 자동 로그인 체크 여부에 따라 Refresh Token 저장소 분리
+        // 자동 로그인 체크
         if (isChecked.autoLogin) {
-          // 체크함 -> 로컬 스토리지 (브라우저 꺼도 유지됨 = 자동 로그인)
           localStorage.setItem("refreshToken", refreshToken);
-          sessionStorage.removeItem("refreshToken"); // 세션 찌꺼기 제거
+          sessionStorage.removeItem("refreshToken");
         } else {
-          // 체크 안 함 -> 세션 스토리지 (브라우저 끄면 사라짐 = 일반 로그인)
           sessionStorage.setItem("refreshToken", refreshToken);
-          localStorage.removeItem("refreshToken"); // 로컬 찌꺼기 제거
+          localStorage.removeItem("refreshToken");
         }
 
-        // 6. 이메일 저장 (편의 기능)
+        // 이메일 저장
         if (isChecked.saveEmail) {
           localStorage.setItem("savedEmail", formData.email);
         } else {
           localStorage.removeItem("savedEmail");
         }
 
-        // 7. 로그인 상태 변경 이벤트 발생 (헤더 등 UI 갱신용)
+        // 로그인 상태 전파
         window.dispatchEvent(new Event("loginStateChange"));
 
         alert(`${member.nickname}님 환영합니다!`);
-        navigate(from, { replace: true });
+        updateLocationBackground(member.memberNo);
+
+        // 사용자는 대기 없이 바로 이동
+        navigate(from || "/", { replace: true });
       } else {
         alert("이메일 또는 비밀번호를 다시 입력해주세요.");
       }
     } catch (error) {
-      console.error(error);
+      console.error("로그인 에러:", error);
       alert("로그인 중 에러가 발생했습니다.");
     }
+  };
+
+  const updateLocationBackground = (memberNo) => {
+    // 브라우저 지원 확인
+    if (!navigator.geolocation) return;
+
+    console.log("📍 백그라운드 위치 업데이트 시작...");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const payload = {
+          memberNo: memberNo,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+
+        axiosApi
+          .post("/api/member/update-location", payload)
+          .then(() => console.log("📍 위치 업데이트 성공"))
+          .catch((err) => console.warn("📍 위치 업데이트 실패", err));
+      },
+      (error) => {
+        console.warn("위치 정보 가져오기 실패:", error);
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 20000,
+        maximumAge: 0,
+      },
+    );
   };
 
   return (
