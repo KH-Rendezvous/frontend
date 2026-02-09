@@ -1,8 +1,11 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-// [수정] closeSidebar props 추가
+// closeSidebar props 추가
 const SideBar = ({ getNavLinkStyle, closeSidebar }) => {
+  const navigate = useNavigate();
+
   return (
     <aside className="bg-white h-full w-full flex flex-col items-center overflow-y-auto pb-10 h-[10000px]">
       {/* 로고 영역 */}
@@ -10,6 +13,7 @@ const SideBar = ({ getNavLinkStyle, closeSidebar }) => {
         <img
           src="/logo.png"
           alt="Rendezvous Logo"
+          onClick={() => navigate("/")}
           className="w-[120px] lg:w-[160px] object-contain cursor-pointer hover:opacity-80 transition-opacity"
         />
       </div>

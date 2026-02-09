@@ -4,6 +4,8 @@ import { axiosApi } from "../../../api/axiosAPI";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || "/";
 
   // 입력값 상태 관리
   const [formData, setFormData] = useState({
@@ -49,34 +51,51 @@ const LoginPage = () => {
     try {
       const response = await axiosApi.post("/api/member/login", formData);
 
-      console.log("서버 응답:", response.data);
-
       if (response.data.result === 1) {
-        const member = response.data.member;
+        // 1. 서버에서 받은 토큰과 회원 정보 추출
+        const { accessToken, refreshToken, member } = response.data;
 
+        // 2. 미승인된 회원이면 튕겨내기
         if (member.memberStatus === "N") {
           navigate("/signup-pending");
           return;
         }
 
+        // 3. Access Token은 무조건 로컬 스토리지에 저장 (API 통신용)
+        localStorage.setItem("accessToken", accessToken);
+
+        // 4. 회원 정보 저장 (화면에 닉네임 표시용)
         localStorage.setItem("loginMember", JSON.stringify(member));
 
-        window.dispatchEvent(new Event("loginStateChange"));
+        // 5. [핵심] 자동 로그인 체크 여부에 따라 Refresh Token 저장소 분리
+        if (isChecked.autoLogin) {
+          // 체크함 -> 로컬 스토리지 (브라우저 꺼도 유지됨 = 자동 로그인)
+          localStorage.setItem("refreshToken", refreshToken);
+          sessionStorage.removeItem("refreshToken"); // 세션 찌꺼기 제거
+        } else {
+          // 체크 안 함 -> 세션 스토리지 (브라우저 끄면 사라짐 = 일반 로그인)
+          sessionStorage.setItem("refreshToken", refreshToken);
+          localStorage.removeItem("refreshToken"); // 로컬 찌꺼기 제거
+        }
 
+        // 6. 이메일 저장 (편의 기능)
         if (isChecked.saveEmail) {
           localStorage.setItem("savedEmail", formData.email);
         } else {
           localStorage.removeItem("savedEmail");
         }
 
+        // 7. 로그인 상태 변경 이벤트 발생 (헤더 등 UI 갱신용)
+        window.dispatchEvent(new Event("loginStateChange"));
+
         alert(`${member.nickname}님 환영합니다!`);
-        navigate("/");
+        navigate(from, { replace: true });
       } else {
         alert("이메일 또는 비밀번호를 다시 입력해주세요.");
       }
     } catch (error) {
       console.error(error);
-      alert("로그인 중 에러 발생");
+      alert("로그인 중 에러가 발생했습니다.");
     }
   };
 
@@ -226,7 +245,7 @@ const LoginPage = () => {
           </button>
         </form>
 
-        {/* 회원가입 링크 (하단 추가) */}
+        {/* 회원가입 링크 */}
         <div className="mt-8 text-center">
           <p className="text-sm text-gray-500">
             아직 회원이 아니신가요?
