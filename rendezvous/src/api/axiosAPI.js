@@ -2,7 +2,7 @@ import axios from "axios";
 
 export const axiosApi = axios.create({
   // 환경변수 불러오기 (없으면 로컬호스트 기본값)
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:80",
+  baseURL: "",
   withCredentials: true,
   headers: { "Content-Type": "application/json" },
 });
