@@ -1,11 +1,14 @@
 import React, { useState } from "react";
 import HeaderComponent from "./HeaderComponent";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // useNavigate는 여기서는 안 쓰지만 Link 로직 변경
 import FooterComponent from "./FooterComponent";
 import { axiosApi } from "../../api/axiosAPI";
 
 const HomeComponent = () => {
   const [modal, setModal] = useState(false);
+
+  const isLogin = !!localStorage.getItem("loginMember");
+
   // 문의 폼 상태 관리
   const [formData, setFormData] = useState({
     email: "",
@@ -21,16 +24,21 @@ const HomeComponent = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("문의 내용:", formData);
-    const resp = await axiosApi.post("/main/support", formData);
-
-    if (resp.status === 200) {
-      alert("문의가 접수되었습니다. 입력하신 이메일로 답변을 보내드릴게요!");
-    } else {
-      alert("문의 접수 실패...");
+    try {
+      const resp = await axiosApi.post("/main/support", formData);
+      if (resp.status === 200) {
+        alert("문의가 접수되었습니다. 입력하신 이메일로 답변을 보내드릴게요!");
+      } else {
+        alert("문의 접수 실패...");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("오류가 발생했습니다.");
     }
     setModal(false);
     setFormData({ email: "", title: "", content: "" });
   };
+
   return (
     <div className="flex flex-col min-h-screen">
       <HeaderComponent />
@@ -145,7 +153,7 @@ const HomeComponent = () => {
             </p>
 
             <Link
-              to="/signIn"
+              to={isLogin ? "/discovery" : "/signIn"}
               className="bg-[#EE4B6F] text-white w-full max-w-[280px] py-4 rounded-full font-bold text-xl 
               hover:bg-[#d63a5c] transition-all duration-300 shadow-lg hover:shadow-[#EE4B6F]/40 transform hover:-translate-y-1 text-center"
             >
@@ -285,7 +293,7 @@ const HomeComponent = () => {
             </div>
 
             <Link
-              to="/signIn"
+              to={isLogin ? "/discovery" : "/signIn"}
               className="z-10 bg-[#EE4B6F] text-white px-10 py-4 rounded-full text-xl font-bold 
               hover:bg-[#d63a5c] transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
             >

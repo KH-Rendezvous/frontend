@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import InterestEditModal from "../../myPage/modals/InterestEditModal";
 import RelationModal from "../signup/RelationModal";
 import { axiosApi } from "../../../api/axiosAPI";
@@ -73,16 +73,71 @@ const SignupPage = () => {
 
   const [isRelationModalOpen, setIsRelationModalOpen] = useState(false);
 
+  const [isLocationAgreed, setIsLocationAgreed] = useState(false);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+
+  const [timeLeft, setTimeLeft] = useState(0); // 남은 시간 (초)
+  const [resendCooldown, setResendCooldown] = useState(0); // 재전송 쿨타임 (초)
+  const [isVerified, setIsVerified] = useState(false); // 인증 완료 여부
+  const [isEmailSent, setIsEmailSent] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [images, setImages] = useState(Array(6).fill(null));
+
+  const isFormValid =
+    // 1. 이메일 인증 & 위치 약관
+    isVerified &&
+    isLocationAgreed &&
+    // 2. 이미지 최소 2장
+    images.filter((img) => img !== null).length >= 2 &&
+    // 3. 에러 메시지가 하나도 없어야 함
+    Object.values(errors).every((msg) => !msg) &&
+    // 4. 필수 텍스트 필드들이 다 채워져 있어야 함
+    formData.name &&
+    formData.nickname &&
+    formData.phone &&
+    formData.password &&
+    formData.passwordConfirm &&
+    formData.birthYear &&
+    formData.birthMonth &&
+    formData.birthDay &&
+    formData.gender &&
+    formData.targetGender &&
+    formData.relation &&
+    // 5. 비밀번호 일치 & 관심사 선택
+    formData.password === formData.passwordConfirm &&
+    formData.interests.length > 0;
+
   // 관심사 저장 핸들러 (모달에서 저장 버튼 눌렀을 때 실행됨)
   const handleInterestSave = (selectedInterests) => {
     setFormData((prev) => ({ ...prev, interests: selectedInterests }));
     setIsInterestModalOpen(false);
   };
 
-  // 2. 저장 핸들러 추가
+  // 저장 핸들러 추가
   const handleRelationSave = (selectedId) => {
     setFormData((prev) => ({ ...prev, relation: selectedId }));
     setIsRelationModalOpen(false);
+  };
+
+  useEffect(() => {
+    // 둘 중 하나라도 시간이 남아있으면 타이머 돌아감
+    if ((timeLeft > 0 || resendCooldown > 0) && !isVerified) {
+      const timerId = setInterval(() => {
+        // 5분 타이머 줄이기
+        setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+        // 30초 쿨타임 줄이기
+        setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+
+      return () => clearInterval(timerId);
+    }
+  }, [timeLeft, resendCooldown, isVerified]);
+
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds < 10 ? "0" : ""}${remainingSeconds}`;
   };
 
   const handleSendEmail = async () => {
@@ -92,6 +147,11 @@ const SignupPage = () => {
     }
     if (errors.email) {
       alert("올바른 이메일 형식이 아닙니다.");
+      return;
+    }
+
+    if (resendCooldown > 0) {
+      alert(`잠시 후 다시 시도해주세요. (${resendCooldown}초 남음)`);
       return;
     }
 
@@ -114,9 +174,12 @@ const SignupPage = () => {
       });
 
       if (response.status === 200 && response.data === 1) {
-        alert(
-          "인증번호가 전송되었습니다.\n네트워크 상황에 따라 도착까지 최대 30초 소요될 수 있습니다.",
-        );
+        alert("인증번호가 전송되었습니다.\n최대 30초 소요될 수 있습니다.");
+
+        setTimeLeft(300);
+        setResendCooldown(30);
+        setIsVerified(false);
+        setIsEmailSent(true);
       } else {
         alert("메일 전송에 실패했습니다. 잠시 후 다시 시도해주세요.");
       }
@@ -126,11 +189,41 @@ const SignupPage = () => {
     }
   };
 
-  // 에러 메시지 상태 관리
-  const [errors, setErrors] = useState({});
+  // 인증번호 확인 핸들러
+  const handleCheckAuthKey = async () => {
+    if (!formData.email || !formData.authKey) {
+      alert("이메일과 인증번호를 모두 입력해주세요.");
+      return;
+    }
 
-  // 이미지 상태 관리
-  const [images, setImages] = useState(Array(6).fill(null));
+    // 시간 초과 체크
+    if (timeLeft === 0) {
+      alert("인증 시간이 만료되었습니다. 다시 전송해주세요.");
+      return;
+    }
+
+    try {
+      const response = await axiosApi.post("/email/check", {
+        email: formData.email,
+        authKey: formData.authKey,
+      });
+
+      if (response.status === 200 && response.data === 1) {
+        // 인증 성공
+        setIsVerified(true);
+        setTimeLeft(0);
+        setErrors((prev) => ({ ...prev, authKey: null }));
+        alert("인증이 완료되었습니다.");
+      } else {
+        // 인증 실패
+        setIsVerified(false);
+        alert("인증번호가 일치하지 않습니다.");
+      }
+    } catch (error) {
+      console.error("Auth Check Error:", error);
+      alert("인증 확인 중 오류가 발생했습니다.");
+    }
+  };
 
   // 날짜 유효성 검사 헬퍼 함수 (해당 연도/월의 마지막 날짜 반환)
   const getMaxDays = (year, month) => {
@@ -430,14 +523,29 @@ const SignupPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 1. [이미지 검사] 유효한 이미지가 2장 이상인지 확인
+    // 0. 이미 제출 중이면 함수 종료 (더블 클릭 방지)
+    if (isSubmitting || !isFormValid) return;
+
+    // 1. 이메일 인증 완료 여부 검사
+    if (!isVerified) {
+      alert("이메일 인증을 완료해주세요.");
+      document.querySelector('input[name="email"]').focus();
+      return;
+    }
+
+    if (!isLocationAgreed) {
+      alert("위치기반 서비스 이용약관에 동의해주세요.");
+      return;
+    }
+
+    // 2. 이미지 검사: 유효한 이미지가 2장 이상인지 확인
     const validImages = images.filter((img) => img !== null);
     if (validImages.length < 2) {
       alert("프로필 사진은 최소 2장 이상 등록해야 합니다.");
       return;
     }
 
-    // 2. [실시간 에러 검사]
+    // 3. 실시간 에러 검사
     const currentErrorMessages = Object.values(errors).filter((msg) => msg);
     if (currentErrorMessages.length > 0) {
       alert(
@@ -446,7 +554,7 @@ const SignupPage = () => {
       return;
     }
 
-    // 3. [필수 입력값 검사]
+    // 4. 필수 입력값 검사
     const requiredFields = [
       { key: "email", label: "이메일" },
       { key: "authKey", label: "인증번호" },
@@ -475,36 +583,35 @@ const SignupPage = () => {
       return;
     }
 
+    if (formData.interests.length === 0) {
+      alert("관심사를 최소 1개 이상 선택해주세요.");
+      return;
+    }
+
+    // --- 검사 통과: 전송 시작 ---
+
+    // 5. 로딩 시작 (버튼 비활성화 효과)
+    setIsSubmitting(true);
+
     const fixedMonth = formData.birthMonth.padStart(2, "0");
     const fixedDay = formData.birthDay.padStart(2, "0");
 
-    // 덮어씌울 새로운 데이터 객체 생성
     const finalFormData = {
       ...formData,
       birthMonth: fixedMonth,
       birthDay: fixedDay,
     };
 
-    if (formData.interests.length === 0) {
-      alert("관심사를 최소 1개 이상 선택해주세요.");
-      return;
-    }
-
-    // --- 데이터 전송 준비 ---
-
-    // 6. FormData 생성
     const submitData = new FormData();
-
     const { passwordConfirm, ...rest } = finalFormData;
 
-    // JSON 데이터 추가 ('data')
+    // JSON 데이터 추가
     const jsonBlob = new Blob([JSON.stringify(rest)], {
       type: "application/json",
     });
-
     submitData.append("data", jsonBlob);
 
-    // 이미지 파일 추가 ('images')
+    // 이미지 파일 추가
     validImages.forEach((img) => {
       if (img.file) {
         submitData.append("images", img.file);
@@ -514,22 +621,23 @@ const SignupPage = () => {
     try {
       const response = await axiosApi.post("/api/member/signup", submitData);
 
-      // 8. 결과 처리
       if (response.data === 1) {
+        alert("가입 신청이 완료되었습니다!"); // 사용자에게 성공 알림
         navigate("/signup-pending");
       } else {
         alert("가입 처리에 실패했습니다. (관리자 문의)");
       }
     } catch (error) {
       console.error("Signup failed", error);
-
       const serverMsg = error.response?.data?.message;
-
       if (serverMsg) {
         alert(`가입 실패: ${serverMsg}`);
       } else {
         alert("서버 통신 중 오류가 발생했습니다.");
       }
+    } finally {
+      // 6. 성공하든 실패하든 로딩 상태 해제
+      setIsSubmitting(false);
     }
   };
 
@@ -609,10 +717,13 @@ const SignupPage = () => {
                     name="email"
                     value={formData.email}
                     placeholder="example@email.com"
+                    readOnly={isVerified}
                     className={`flex-1 bg-gray-50 border rounded-xl px-4 py-3 text-sm focus:outline-none transition-all ${
                       errors.email
                         ? "border-red-500 focus:border-red-500"
-                        : "border-gray-200 focus:border-[#EE4B6F]"
+                        : isVerified
+                          ? "border-green-500 bg-green-50"
+                          : "border-gray-200 focus:border-[#EE4B6F]"
                     }`}
                     onBlur={handleBlur}
                     onChange={handleChange}
@@ -620,9 +731,22 @@ const SignupPage = () => {
                   <button
                     type="button"
                     onClick={handleSendEmail}
-                    className="bg-[#EE4B6F] hover:bg-[#D63A5C] text-white px-4 py-3 rounded-xl text-xs font-bold transition-colors whitespace-nowrap shadow-md shadow-pink-200"
+                    // [수정] 버튼 비활성화 조건: 인증 완료됐거나 || 30초 쿨타임 중일 때
+                    disabled={isVerified || resendCooldown > 0}
+                    className={`px-4 py-3 rounded-xl text-xs font-bold transition-colors whitespace-nowrap shadow-md ${
+                      isVerified || resendCooldown > 0
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none"
+                        : "bg-[#EE4B6F] hover:bg-[#D63A5C] text-white shadow-pink-200"
+                    }`}
                   >
-                    인증번호 전송
+                    {/* 버튼 텍스트 로직 변경 */}
+                    {
+                      isVerified
+                        ? "인증 완료"
+                        : resendCooldown > 0
+                          ? `${resendCooldown}초 후 재전송` // 30초 카운트다운
+                          : "인증번호 전송" // 평소 상태
+                    }
                   </button>
                 </div>
                 {errors.email && (
@@ -630,24 +754,76 @@ const SignupPage = () => {
                 )}
               </div>
 
-              <input
-                type="text"
-                name="authKey"
-                value={formData.authKey}
-                placeholder="인증번호 입력"
-                className={`w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm focus:outline-none transition-all ${
-                  errors.authKey
-                    ? "border-red-500 focus:border-red-500"
-                    : "border-gray-200 focus:border-[#EE4B6F]"
-                }`}
-                onChange={handleChange}
-              />
+              {/* 인증번호 입력란 + 확인 버튼 (레이아웃 변경) */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  name="authKey"
+                  value={formData.authKey}
+                  placeholder="인증번호 6자리"
+                  readOnly={isVerified || timeLeft === 0} // 시간 끝나거나 인증되면 입력 불가
+                  className={`flex-1 bg-gray-50 border rounded-xl px-4 py-3 text-sm focus:outline-none transition-all ${
+                    errors.authKey
+                      ? "border-red-500 focus:border-red-500"
+                      : isVerified
+                        ? "border-green-500 bg-green-50"
+                        : "border-gray-200 focus:border-[#EE4B6F]"
+                  }`}
+                  onChange={handleChange}
+                />
+                {/* 인증 확인 버튼 추가 */}
+                <button
+                  type="button"
+                  onClick={handleCheckAuthKey}
+                  disabled={isVerified || timeLeft === 0} // 이미 인증했거나 시간 끝났으면 비활성
+                  className={`px-4 py-3 rounded-xl text-xs font-bold transition-colors whitespace-nowrap shadow-md ${
+                    isVerified || timeLeft === 0
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none"
+                      : "bg-gray-800 hover:bg-gray-900 text-white"
+                  }`}
+                >
+                  확인
+                </button>
+              </div>
 
-              {errors.authKey && (
-                <p className="text-xs text-red-500 ml-1 mt-1">
-                  {errors.authKey}
-                </p>
-              )}
+              {/* 메시지 영역: 타이머 or 성공 메시지 or 에러 메시지 */}
+              <div className="ml-1 min-h-[20px]">
+                {isVerified ? (
+                  <p className="text-xs text-green-600 font-bold">
+                    ✓ 인증이 완료되었습니다.
+                  </p>
+                ) : (
+                  <>
+                    {errors.authKey && (
+                      <p className="text-xs text-red-500 mb-1">
+                        {errors.authKey}
+                      </p>
+                    )}
+
+                    {/* [수정] 여기는 여전히 5분 타이머(timeLeft)를 보여줌 */}
+                    {timeLeft > 0 && !isVerified && (
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-[#EE4B6F] font-bold">
+                          남은 시간: {formatTime(timeLeft)}
+                        </span>
+                        {/* 30초 지나면 팁을 띄워줄 수도 있음 */}
+                        {resendCooldown === 0 && (
+                          <span className="text-gray-400 text-[10px] ml-2">
+                            인증번호가 안 오나요? 재전송을 눌러보세요.
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* 5분 지났을 때 메시지 */}
+                    {timeLeft === 0 && !isVerified && isEmailSent && (
+                      <p className="text-xs text-gray-400">
+                        인증번호 유효시간이 만료되었습니다.
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
 
             {/* 전화번호 */}
@@ -969,11 +1145,39 @@ const SignupPage = () => {
           </div>
 
           <div className="mt-10 space-y-4">
+            <div className="flex items-center gap-2 px-1">
+              <input
+                type="checkbox"
+                id="locationAgree"
+                checked={isLocationAgreed}
+                onChange={(e) => setIsLocationAgreed(e.target.checked)}
+                className="w-4 h-4 text-[#EE4B6F] border-gray-300 rounded focus:ring-[#EE4B6F] cursor-pointer"
+              />
+              <label
+                htmlFor="locationAgree"
+                className="text-xs text-gray-600 cursor-pointer select-none"
+              >
+                <span className="text-[#EE4B6F] font-bold">[필수]</span>{" "}
+                위치기반 서비스 이용약관 동의
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsLocationModalOpen(true)}
+                className="text-xs text-gray-400 underline hover:text-gray-600 ml-auto"
+              >
+                내용 보기
+              </button>
+            </div>
             <button
               onClick={handleSubmit}
-              className="w-full py-4 bg-gradient-to-r from-[#EE4B6F] to-[#FF6B6B] text-white rounded-xl font-bold text-lg shadow-lg shadow-pink-200 hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all duration-300"
+              disabled={!isFormValid || isSubmitting}
+              className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all duration-300 ${
+                !isFormValid || isSubmitting
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none" // 비활성 스타일
+                  : "bg-gradient-to-r from-[#EE4B6F] to-[#FF6B6B] text-white shadow-pink-200 hover:shadow-xl hover:scale-[1.01] active:scale-[0.99]" // 활성 스타일
+              }`}
             >
-              가입 신청
+              {isSubmitting ? "가입 처리 중..." : "가입 신청"}
             </button>
             <div className="text-center text-sm text-gray-500">
               이미 계정이 있으신가요?{" "}
@@ -1004,6 +1208,101 @@ const SignupPage = () => {
           onSave={handleRelationSave}
         />
       )}
+      {isLocationModalOpen && (
+        <LocationTermModal onClose={() => setIsLocationModalOpen(false)} />
+      )}
+    </div>
+  );
+};
+
+const LocationTermModal = ({ onClose }) => {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+        {/* Header */}
+        <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+          <h3 className="text-lg font-bold text-gray-800">
+            위치기반 서비스 이용약관
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content (Scrollable) */}
+        <div className="p-6 overflow-y-auto text-sm text-gray-600 leading-relaxed space-y-4">
+          <p className="font-bold text-gray-800">제 1 조 (목적)</p>
+          <p>
+            본 약관은 Rendezvous(이하 "회사")가 제공하는 위치기반 서비스와
+            관련하여 회사와 개인위치정보주체와의 권리, 의무 및 책임사항, 기타
+            필요한 사항을 규정함을 목적으로 합니다.
+          </p>
+
+          <p className="font-bold text-gray-800 mt-4">
+            제 2 조 (이용약관의 효력 및 변경)
+          </p>
+          <p>
+            1. 본 약관은 서비스를 신청한 고객 또는 개인위치정보주체가 본 약관에
+            동의하고 회사가 정한 소정의 절차에 따라 서비스의 이용자로
+            등록함으로써 효력이 발생합니다.
+            <br />
+            2. 회원은 본 약관에 동의하지 않을 경우 서비스 이용을 중단하고 탈퇴할
+            수 있으며, 약관에 동의하는 것은 회사가 위치정보를 수집, 이용,
+            제공하는 것에 동의하는 것으로 간주합니다.
+          </p>
+
+          <p className="font-bold text-gray-800 mt-4">
+            제 3 조 (위치정보 수집방법)
+          </p>
+          <p>
+            회사는 다음과 같은 방식으로 개인위치정보를 수집합니다.
+            <br />
+            1. 휴대폰 단말기를 이용한 기지국 기반(Cell ID)의 실시간 위치정보
+            수집
+            <br />
+            2. GPS칩이 내장된 전용 단말기를 통해 수집되는 GPS 정보
+            <br />
+            3. Wi-Fi 무선랜을 통해 수집되는 위치정보
+          </p>
+
+          <p className="font-bold text-gray-800 mt-4">
+            제 4 조 (서비스의 내용)
+          </p>
+          <p>
+            회사는 위치정보를 이용하여 다음과 같은 서비스를 제공합니다.
+            <br />
+            1. 내 주변 사용자 찾기 및 매칭 추천 서비스
+            <br />
+            2. 현재 위치를 기반으로 한 데이트 장소 추천
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-6 py-2 bg-[#EE4B6F] hover:bg-[#D63A5C] text-white rounded-xl font-bold text-sm transition-colors shadow-lg shadow-pink-100"
+          >
+            확인
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

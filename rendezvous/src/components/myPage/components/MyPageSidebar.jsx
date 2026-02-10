@@ -15,7 +15,7 @@ import DeleteAccountModal from "../modals/DeleteAccountModal";
 const MyPageSidebar = () => {
   const navigate = useNavigate();
 
-  // [수정 1] 로컬스토리지에서 내 정보 꺼내기
+  // 로컬스토리지에서 내 정보 꺼내기
   const [loginMember, setLoginMember] = useState(() => {
     const stored = localStorage.getItem("loginMember");
     return stored ? JSON.parse(stored) : null;
@@ -37,7 +37,7 @@ const MyPageSidebar = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isGenderModalOpen, setIsGenderModalOpen] = useState(false);
 
-  // [수정 2] 페이지 로드 시 DB에 저장된 내 설정값 가져오기
+  // 페이지 로드 시 DB에 저장된 내 설정값 가져오기
   useEffect(() => {
     if (!memberNo) return;
 
@@ -217,7 +217,7 @@ const MyPageSidebar = () => {
         <img
           src="/logo.png"
           alt="Rendezvous"
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/discovery")}
           className="h-40 mx-auto mb-6 object-contain cursor-pointer transition-transform hover:scale-105"
         />
         <div className="flex justify-between bg-white border border-gray-200 rounded-[20px] p-1 shadow-sm mb-6">
