@@ -39,6 +39,29 @@ const LoginPage = () => {
     }
   }, []);
 
+  // 📍 추가: 현재 위치를 가져오는 Promise (하드코딩 방지용)
+  const getCurrentLocation = () => {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve({ latitude: null, longitude: null });
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.warn("위치 획득 실패:", error);
+          resolve({ latitude: null, longitude: null });
+        },
+        { enableHighAccuracy: false, timeout: 5000 } // 5초 대기
+      );
+    });
+  };
+
   // 로그인 요청 핸들러
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -67,9 +90,19 @@ const LoginPage = () => {
           return;
         }
 
-        // 토큰 및 정보 저장
+        // 하드코딩 탈출: 페이지 이동 전 최신 위치 좌표 획득
+        const coords = await getCurrentLocation();
+
+        // 위치 정보가 합쳐진 새로운 회원 정보 생성
+        const updatedMember = {
+          ...member,
+          latitude: coords.latitude || member.latitude, // 새 좌표 없으면 DB 기존값 유지
+          longitude: coords.longitude || member.longitude,
+        };
+
+        // 토큰 및 정보 저장 (최신 위치 정보가 포함된 updatedMember 저장)
         localStorage.setItem("accessToken", accessToken);
-        localStorage.setItem("loginMember", JSON.stringify(member));
+        localStorage.setItem("loginMember", JSON.stringify(updatedMember));
 
         // 자동 로그인 체크
         if (isChecked.autoLogin) {
@@ -90,8 +123,16 @@ const LoginPage = () => {
         // 로그인 상태 전파
         window.dispatchEvent(new Event("loginStateChange"));
 
+        // 서버 DB에도 최신 위치 업데이트 (백그라운드 처리)
+        if (coords.latitude) {
+          axiosApi.post("/api/member/update-location", {
+            memberNo: member.memberNo,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+          }).then(() => console.log("📍 서버 위치 동기화 완료"));
+        }
+
         alert(`${member.nickname}님 환영합니다!`);
-        updateLocationBackground(member.memberNo);
 
         // 사용자는 대기 없이 바로 이동
         navigate(from || "/", { replace: true });
@@ -102,36 +143,6 @@ const LoginPage = () => {
       console.error("로그인 에러:", error);
       alert("로그인 중 에러가 발생했습니다.");
     }
-  };
-
-  const updateLocationBackground = (memberNo) => {
-    // 브라우저 지원 확인
-    if (!navigator.geolocation) return;
-
-    console.log("📍 백그라운드 위치 업데이트 시작...");
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const payload = {
-          memberNo: memberNo,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        };
-
-        axiosApi
-          .post("/api/member/update-location", payload)
-          .then(() => console.log("📍 위치 업데이트 성공"))
-          .catch((err) => console.warn("📍 위치 업데이트 실패", err));
-      },
-      (error) => {
-        console.warn("위치 정보 가져오기 실패:", error);
-      },
-      {
-        enableHighAccuracy: false,
-        timeout: 20000,
-        maximumAge: 0,
-      },
-    );
   };
 
   return (

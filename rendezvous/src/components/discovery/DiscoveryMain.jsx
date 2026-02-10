@@ -3,79 +3,96 @@ import { AnimatePresence } from "framer-motion";
 import DiscoveryCard from "./DiscoveryCard";
 import { axiosApi } from "../../api/axiosAPI";
 
-const DiscoveryMain = ({ myMemberNo = 3 }) => {
-  // [수정] 실제 DB 데이터를 담기 위해 초기값은 빈 배열로 설정
+const DiscoveryMain = ({ loginMember }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // [추가] 백엔드에서 추천 유저 리스트를 가져오는 함수
+    // 1. 데이터 확인 로그
+    console.log("📍 [DiscoveryMain] 현재 로그인 정보:", loginMember);
+
     const fetchDiscoveryUsers = async () => {
+      if (!loginMember || !loginMember.memberNo) {
+        console.warn("⚠️ 로그인 정보가 없어 리스트를 불러올 수 없습니다.");
+        return;
+      }
+
       try {
         setLoading(true);
-        // GET 방식으로 내 회원번호를 전달 (Controller의 @RequestParam과 매칭)
-        const response = await axiosApi.get("/api/matching/discovery", {
-          params: { memberNo: myMemberNo },
-        });
+        
+        // 2. 서버 로그의 null을 해결하기 위해 위도/경도를 명시적으로 포함
+        const params = {
+          memberNo: loginMember.memberNo,
+          gender: loginMember.targetGender,
+          distance: loginMember.targetDistance || 100,
+          minAge: loginMember.minAge || 19,
+          maxAge: loginMember.maxAge || 99,
+          latitude: loginMember.latitude,
+          longitude: loginMember.longitude
+        };
 
-        // 서버에서 가져온 데이터를 상태에 저장
-        // DTO 필드명이 camelCase일 수 있으니 확인 (예: memberNo, photoUrl)
-        setUsers(response.data);
+        console.log("🚀 서버로 보낼 실제 파라미터:", params);
+
+        const response = await axiosApi.get("/api/matching/discovery", { params });
+        
+        console.log("✅ 서버 응답 결과(Total):", response.data?.length || 0);
+        setUsers(response.data || []);
       } catch (error) {
-        console.error("인연 데이터를 가져오는 중 오류 발생:", error);
+        console.error("❌ 탐색 리스트 로드 실패:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    if (myMemberNo) {
-      fetchDiscoveryUsers();
-    }
-  }, [myMemberNo]);
+    fetchDiscoveryUsers();
+  }, [loginMember]);
 
-  const handleSwipe = (direction) => {
-    if (users.length === 0) return;
-    const actionType = direction === "right" ? "LIKE" : "NOPE";
+  const handleSwipe = async (direction, targetMemberNo) => {
+  if (users.length === 0) return;
+  
+  // 📍 이름을 'actionType'으로 맞춰줍니다 (DB 컬럼명과 매칭되도록)
+  const actionType = direction === "right" ? "LIKE" : "NOPE";
+  
+  setUsers((prev) => prev.slice(1));
 
-    // [참고] users[0]의 필드명이 DB/DTO 설정에 따라 다를 수 있음
-    // 만약 DTO에서 camelCase를 썼다면 users[0].nickname 으로 접근
-    console.log(
-      `Action: ${actionType} to ${users[0].nickname || users[0].NICKNAME}`,
-    );
-
-    // 다음 카드로 넘기기
-    setUsers((prev) => prev.slice(1));
-
-    // TODO: 나중에 이 시점에 DB에 ACTION을 저장하는 axios.post 코드가 들어올 자리입니다.
-  };
+  try {
+    await axiosApi.post("/api/matching/action", {
+      fromMemberNo: loginMember.memberNo,
+      toMemberNo: targetMemberNo,
+      actionType: actionType, // 📍 action 대신 actionType으로 변경!
+      inputType: 'SWIPE'      // 📍 로그 보니 inputType도 필요해 보여서 추가함
+    });
+    console.log("✅ 액션 저장 성공");
+  } catch (error) {
+    console.error("❌ 액션 저장 실패:", error);
+  }
+};
 
   return (
     <div className="flex-1 bg-[#FDFCFB] flex items-center justify-center relative overflow-hidden">
       {loading ? (
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-pink-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-pink-500 font-bold">인연을 찾는 중...</p>
+          <p className="text-pink-500 font-bold italic">주변의 인연을 불러오는 중...</p>
         </div>
       ) : users.length > 0 ? (
         <div className="relative w-[380px] h-[580px]">
           <AnimatePresence mode="popLayout">
             <DiscoveryCard
-              // DTO 필드명에 맞춰 key값 설정 (memberNo 또는 MEMBER_NO)
-              key={users[0].memberNo || users[0].MEMBER_NO}
+              // DB 결과가 대문자(MEMBER_NO)로 넘어올 경우를 대비한 방어 코드
+              key={users[0].MEMBER_NO || users[0].memberNo}
               user={users[0]}
               onSwipe={handleSwipe}
             />
           </AnimatePresence>
         </div>
       ) : (
-        <div className="flex flex-col items-center text-center">
+        <div className="flex flex-col items-center text-center px-6">
           <span className="text-6xl mb-6">🏜️</span>
-          <p className="text-gray-400 font-black">
-            더 이상 표시할 인연이 없어요.
+          <p className="text-gray-400 font-black italic">주변에 조건에 맞는 인연이 없어요.</p>
+          <p className="text-[10px] text-gray-300 mt-2">
+            마이페이지에서 탐색 거리나 성별 설정을 확인해 보세요!
           </p>
-          <button className="mt-4 text-[#FF4458] font-bold underline">
-            범위 넓혀보기
-          </button>
         </div>
       )}
     </div>
