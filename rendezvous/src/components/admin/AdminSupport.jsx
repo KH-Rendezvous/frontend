@@ -13,10 +13,22 @@ const AdminSupport = () => {
 
   const getSupportData = async () => {
     try {
-      const resp = await axiosApi.get("/main/support");
-      setSupport(resp.data);
+      // 프록시 설정에 맞춰 /api 추가
+      const resp = await axiosApi.get("/api/main/support");
+      console.log("QnA 데이터:", resp.data); // 데이터 확인용
+
+      // 데이터가 배열인지 확인하고 넣기 (방어 코드)
+      if (Array.isArray(resp.data)) {
+        setSupport(resp.data);
+      } else if (resp.data && Array.isArray(resp.data.data)) {
+        setSupport(resp.data.data);
+      } else {
+        console.warn("QnA 데이터가 배열 형식이 아님:", resp.data);
+        setSupport([]); // 이상하면 빈 배열
+      }
     } catch (error) {
       console.error("데이터 로딩 실패:", error);
+      setSupport([]); // 에러 시 빈 배열
     }
   };
 
@@ -24,15 +36,18 @@ const AdminSupport = () => {
     getSupportData();
   }, []);
 
-  const filteredSupport = support.filter((item) => {
-    const status = item.supportStatus
-      ? item.supportStatus.trim().toUpperCase()
-      : "N";
-    if (selectType === "all") return true;
-    if (selectType === "unanswered") return status === "N";
-    if (selectType === "answered") return status === "Y";
-    return true;
-  });
+  // [수정 3] 필터링 시 배열 여부 확인 (2차 방어)
+  const filteredSupport = Array.isArray(support)
+    ? support.filter((item) => {
+        const status = item.supportStatus
+          ? item.supportStatus.trim().toUpperCase()
+          : "N";
+        if (selectType === "all") return true;
+        if (selectType === "unanswered") return status === "N";
+        if (selectType === "answered") return status === "Y";
+        return true;
+      })
+    : [];
 
   const totalItems = filteredSupport.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -42,7 +57,7 @@ const AdminSupport = () => {
 
   const currentItems = filteredSupport.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   const pageNumbers = [];
