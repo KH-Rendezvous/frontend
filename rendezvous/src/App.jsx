@@ -23,6 +23,8 @@ import Policy from "./components/policy/Privacy";
 import Privacy from "./components/policy/Privacy";
 import Terms from "./components/policy/Terms";
 import PrivateRoute from "./components/auth/PrivateRoute";
+import FindEmail from "./pages/user/FindEmail";
+import FindPassword from "./pages/user/FindPassword";
 
 function App() {
   return (
@@ -34,6 +36,8 @@ function App() {
       <Route path="/signIn" element={<Login />} />
       <Route path="/signUp" element={<Signup />} />
       <Route path="/signup-pending" element={<SignupPending />} />
+      <Route path="/find-email" element={<FindEmail />} />
+      <Route path="/find-password" element={<FindPassword />} />
 
       {/* Footer 컨텐츠들 */}
       <Route path="/service-intro" element={<ServiceIntro />} />
