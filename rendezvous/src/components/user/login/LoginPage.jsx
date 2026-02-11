@@ -57,7 +57,7 @@ const LoginPage = () => {
           console.warn("위치 획득 실패:", error);
           resolve({ latitude: null, longitude: null });
         },
-        { enableHighAccuracy: false, timeout: 5000 } // 5초 대기
+        { enableHighAccuracy: false, timeout: 5000 }, // 5초 대기
       );
     });
   };
@@ -125,11 +125,13 @@ const LoginPage = () => {
 
         // 서버 DB에도 최신 위치 업데이트 (백그라운드 처리)
         if (coords.latitude) {
-          axiosApi.post("/api/member/update-location", {
-            memberNo: member.memberNo,
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-          }).then(() => console.log("📍 서버 위치 동기화 완료"));
+          axiosApi
+            .post("/api/member/update-location", {
+              memberNo: member.memberNo,
+              latitude: coords.latitude,
+              longitude: coords.longitude,
+            })
+            .then(() => console.log("📍 서버 위치 동기화 완료"));
         }
 
         alert(`${member.nickname}님 환영합니다!`);

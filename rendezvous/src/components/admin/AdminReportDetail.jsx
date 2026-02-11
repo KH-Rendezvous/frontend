@@ -1,13 +1,6 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import {
-  X,
-  User,
-  AlertTriangle,
-  Calendar,
-  Mail,
-  ChevronLeft,
-} from "lucide-react";
+import { X, User, AlertTriangle, Calendar, ChevronLeft } from "lucide-react";
 import { axiosApi } from "../../api/axiosAPI";
 
 const AdminReportDetail = () => {
@@ -19,6 +12,7 @@ const AdminReportDetail = () => {
   // [이미지 확대] 상태 관리
   const [zoomImage, setZoomImage] = useState(null);
 
+  // 목록 페이지(AdminReport)에서 넘겨준 데이터 받기
   const user = location.state?.user;
 
   if (!user) {
@@ -40,14 +34,29 @@ const AdminReportDetail = () => {
     );
   }
 
-  const handleProcessReport = () => {
-    alert("신고 처리가 완료되었습니다. (계정 정지/탈퇴)");
-    setModal(false);
-    navigate("/admin/report");
+  // [수정 1] 실제 API 호출 로직 추가
+  const handleProcessReport = async () => {
+    try {
+      // 백엔드 주소: /api/admin/report/process
+      const resp = await axiosApi.post("/api/admin/report/process", {
+        reportNo: user.reportNo,
+        targetMemberNo: user.targetMemberNo,
+      });
+
+      if (resp.status === 200 || resp.data > 0) {
+        alert("신고 처리가 완료되었습니다. (계정 정지 처리됨)");
+        setModal(false);
+        // [수정 2] 이동할 때는 /api 빼고 페이지 주소로 이동 (/admin/reports)
+        navigate("/admin/reports");
+      }
+    } catch (error) {
+      console.error("신고 처리 에러:", error);
+      alert("처리 중 오류가 발생했습니다.");
+    }
   };
 
   return (
-    <div className="w-full flex flex-col font-sans max-w-4xl mx-auto pb-20">
+    <div className="w-full flex flex-col font-sans max-w-4xl mx-auto pb-20 p-4">
       {/* [이미지 확대 모달] */}
       {zoomImage && (
         <div
@@ -154,13 +163,17 @@ const AdminReportDetail = () => {
               <div className="flex justify-between py-2 border-b border-gray-200/60">
                 <span className="text-gray-500">신고 일자</span>
                 <span className="font-bold text-gray-800 flex items-center gap-1">
-                  <Calendar size={14} className="text-gray-400" /> {user.date}
+                  {/* [수정 3] DTO 필드명 매칭: date -> reportDate */}
+                  <Calendar size={14} className="text-gray-400" />{" "}
+                  {user.reportDate}
                 </span>
               </div>
               <div className="flex justify-between py-2">
                 <span className="text-gray-500">신고자</span>
                 <span className="font-bold text-gray-800 flex items-center gap-1">
-                  <User size={14} className="text-gray-400" /> {user.nickname}
+                  {/* [수정 3] DTO 필드명 매칭: nickname -> reporterNickname */}
+                  <User size={14} className="text-gray-400" />{" "}
+                  {user.reporterNickname}
                 </span>
               </div>
             </div>
@@ -199,8 +212,12 @@ const AdminReportDetail = () => {
             신고 내용
           </h3>
           <div className="bg-white border border-gray-200 p-6 rounded-2xl text-gray-700 leading-relaxed whitespace-pre-wrap shadow-sm min-h-[150px]">
-            <p className="font-bold text-lg mb-4 text-black">{user.title}</p>
-            {user.content}
+            {/* [수정 3] DTO 필드명 매칭: title -> reportTitle */}
+            <p className="font-bold text-lg mb-4 text-black">
+              {user.reportTitle}
+            </p>
+            {/* [수정 3] DTO 필드명 매칭: content -> reportContent */}
+            {user.reportContent}
           </div>
         </div>
 

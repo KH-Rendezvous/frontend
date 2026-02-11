@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { axiosApi } from "../../api/axiosAPI";
 import EmailStatus from "./EmailStatus";
-import { ChevronLeft, ChevronRight, X } from "lucide-react"; // 아이콘 추가
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 const AdminReport = () => {
   const [reportList, setReportList] = useState([]);
@@ -11,12 +11,21 @@ const AdminReport = () => {
   const itemsPerPage = 10;
   const pageGroupSize = 10;
 
+  // [수정] 데이터 로딩 시 안전장치 추가
   const getReportData = async () => {
     try {
-      const resp = await axiosApi.get("/admin/reports");
-      setReportList(resp.data);
+      // 주소는 /api/admin/reports (백엔드 AdminController와 일치함)
+      const resp = await axiosApi.get("/api/admin/reports");
+
+      // 배열인지 확인하고 넣기
+      if (Array.isArray(resp.data)) {
+        setReportList(resp.data);
+      } else {
+        setReportList([]);
+      }
     } catch (error) {
       console.error("신고 목록 로딩 실패:", error);
+      setReportList([]);
     }
   };
 
@@ -24,28 +33,35 @@ const AdminReport = () => {
     getReportData();
   }, []);
 
-  const filteredList = reportList.filter((item) => {
-    const status = item.reportStatus
-      ? item.reportStatus.trim().toUpperCase()
-      : "N";
-    if (selectType === "all") return true;
-    if (selectType === "unanswered") return status === "N";
-    if (selectType === "answered") return status === "Y";
-    return true;
-  });
+  // [수정] 필터링 시 안전장치 추가 (에러 방지)
+  const filteredList = Array.isArray(reportList)
+    ? reportList.filter((item) => {
+        const status = item.reportStatus
+          ? item.reportStatus.trim().toUpperCase()
+          : "N";
+        if (selectType === "all") return true;
+        if (selectType === "unanswered") return status === "N";
+        if (selectType === "answered") return status === "Y";
+        return true;
+      })
+    : [];
 
+  // --- 페이지네이션 ---
   const totalItems = filteredList.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const currentGroup = Math.ceil(currentPage / pageGroupSize);
   const startPage = (currentGroup - 1) * pageGroupSize + 1;
   const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
+
   const currentItems = filteredList.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   );
+
   const pageNumbers = [];
   for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
 
+  // --- 모달 상태 ---
   const [modal, setModal] = useState(false);
   const [selectedReport, setSelectedReport] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -56,19 +72,29 @@ const AdminReport = () => {
     setModal(true);
   };
 
+  // --- 신고 처리 핸들러 ---
   const processReportHandler = async () => {
-    if (!window.confirm("해당 신고를 처리 완료하시겠습니까?")) return;
+    if (
+      !window.confirm(
+        "해당 신고를 처리 완료하시겠습니까?\n(대상 회원은 정지 처리됩니다.)",
+      )
+    )
+      return;
+
     setModal(false);
     setIsLoading(true);
+
     try {
-      const resp = await axiosApi.post("/admin/report/process", {
+      // 주소 /api/admin/report/process (백엔드와 일치함)
+      const resp = await axiosApi.post("/api/admin/report/process", {
         reportNo: selectedReport.reportNo,
         targetMemberNo: selectedReport.targetMemberNo,
       });
-      if (resp.status === 200) {
+
+      if (resp.status === 200 || resp.data > 0) {
         setIsLoading(false);
         alert("신고 처리가 완료되었습니다!");
-        getReportData();
+        getReportData(); // 목록 새로고침
       }
     } catch (error) {
       console.log(error);
@@ -80,8 +106,8 @@ const AdminReport = () => {
   const isCompleted = selectedReport.reportStatus?.trim() === "Y";
 
   return (
-    <div className="w-full h-full flex flex-col font-sans max-w-[1200px] mx-auto">
-      {isLoading && <EmailStatus text={"신고 처리 중..."} />}
+    <div className="w-full h-full flex flex-col font-sans max-w-[1200px] mx-auto p-4">
+      {isLoading && <EmailStatus text={"신고 처리 및 회원 정지 중..."} />}
 
       {/* --- 이미지 확대 모달 --- */}
       {zoomImage && (
@@ -104,7 +130,7 @@ const AdminReport = () => {
         </div>
       )}
 
-      {/* --- 신고 상세 모달 (반응형 적용) --- */}
+      {/* --- 신고 상세 모달 --- */}
       {modal && (
         <div className="fixed inset-0 z-50 flex justify-center items-center px-4">
           <div
@@ -229,7 +255,7 @@ const AdminReport = () => {
         </div>
       )}
 
-      {/* --- 메인 컨텐츠 (헤더 + 리스트) --- */}
+      {/* --- 메인 컨텐츠 --- */}
       <div className="w-full">
         <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
@@ -249,7 +275,7 @@ const AdminReport = () => {
           </select>
         </div>
 
-        {/* [1] 모바일용 카드 리스트 뷰 (md:hidden) */}
+        {/* [1] 모바일 리스트 */}
         <div className="grid grid-cols-1 gap-4 md:hidden mb-6">
           {currentItems.length > 0 ? (
             currentItems.map((item) => (
@@ -306,7 +332,7 @@ const AdminReport = () => {
           )}
         </div>
 
-        {/* [2] 데스크탑용 테이블 뷰 (hidden md:block) */}
+        {/* [2] 데스크탑 테이블 */}
         <div className="hidden md:block w-full overflow-hidden bg-white shadow-sm rounded-2xl border border-gray-100 mb-6">
           <table className="w-full table-fixed text-center border-collapse">
             <thead className="bg-[#fff0f3] text-gray-700 h-14 border-b-2 border-[#EE4B6F]/30 text-sm">

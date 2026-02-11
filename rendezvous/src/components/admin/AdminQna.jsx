@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { axiosApi } from "../../api/axiosAPI";
 import EmailStatus from "./EmailStatus";
-import { ChevronLeft, ChevronRight, X } from "lucide-react"; // 아이콘 추가
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 const AdminQna = () => {
   // --- 상태 관리 ---
@@ -12,13 +12,21 @@ const AdminQna = () => {
   const itemsPerPage = 10;
   const pageGroupSize = 10;
 
-  // --- 데이터 불러오기 ---
+  // --- 데이터 불러오기 (GET) ---
   const getQnaData = async () => {
     try {
-      const resp = await axiosApi.get("/admin/qna");
-      setQnaList(resp.data);
+      // 1. 목록 조회 주소: /api/admin/qna
+      const resp = await axiosApi.get("/api/admin/qna");
+
+      // 데이터가 배열인지 확인 (안전장치)
+      if (Array.isArray(resp.data)) {
+        setQnaList(resp.data);
+      } else {
+        setQnaList([]);
+      }
     } catch (error) {
       console.error("데이터 로딩 실패:", error);
+      setQnaList([]);
     }
   };
 
@@ -27,13 +35,17 @@ const AdminQna = () => {
   }, []);
 
   // --- 필터링 ---
-  const filteredList = qnaList.filter((item) => {
-    const status = item.qnaStatus ? item.qnaStatus.trim().toUpperCase() : "N";
-    if (selectType === "all") return true;
-    if (selectType === "unanswered") return status === "N";
-    if (selectType === "answered") return status === "Y";
-    return true;
-  });
+  const filteredList = Array.isArray(qnaList)
+    ? qnaList.filter((item) => {
+        const status = item.qnaStatus
+          ? item.qnaStatus.trim().toUpperCase()
+          : "N";
+        if (selectType === "all") return true;
+        if (selectType === "unanswered") return status === "N";
+        if (selectType === "answered") return status === "Y";
+        return true;
+      })
+    : [];
 
   // --- 페이지네이션 ---
   const totalItems = filteredList.length;
@@ -44,7 +56,7 @@ const AdminQna = () => {
 
   const currentItems = filteredList.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   const pageNumbers = [];
@@ -63,16 +75,17 @@ const AdminQna = () => {
     qnaNo: "",
   });
 
-  // --- 핸들러 ---
+  // --- 모달 열기 핸들러 ---
   const modalHandler = (user) => {
     setSelectedUser(user);
     setModal(true);
     setAnswerModal(false);
 
+    // Qna DTO 필드명(qnaTitle)과 맞춰서 세팅
     setContent({
-      title: `RE: ${user.qnaTitle}`,
+      title: `RE: ${user.qnaTitle ? user.qnaTitle.substring(0, 15) : ""}...`,
       content: "",
-      email: user.memberEmail,
+      email: user.email,
       qnaNo: user.qnaNo,
     });
   };
@@ -82,40 +95,43 @@ const AdminQna = () => {
     setContent((prev) => ({ ...prev, [name]: value }));
   };
 
+  // ★ [핵심 수정] 답변 전송 핸들러
   const submitAnswerHandler = async () => {
     if (!content.title.trim()) return alert("답변 제목을 입력해주세요!");
     if (!content.content.trim()) return alert("답변 내용을 입력해주세요!");
 
-    setEmailStatus(true);
-    setModal(false);
+    setEmailStatus(true); // 로딩 표시 켜기
+    setModal(false); // 모달 닫기
 
     try {
-      const resp = await axiosApi.post("/email/qna", {
+      // 1. 주소 변경: /email/qna (X) -> /api/admin/qna/answer (O)
+      // 2. 변수명 매칭: 백엔드 Qna DTO 필드명(qnaTitle, answerContent)과 똑같이 맞춰서 보냄
+      const resp = await axiosApi.post("/api/admin/qna/answer", {
         qnaNo: content.qnaNo,
-        title: content.title,
-        content: content.content,
-        email: selectedUser.email,
+        qnaTitle: content.title, // 백엔드: qnaTitle
+        answerContent: content.content, // 백엔드: answerContent
+        email: selectedUser.email, // 백엔드: email
       });
 
-      if (resp.status === 200) {
-        alert("답변이 전송되었습니다.");
-        getQnaData();
+      if (resp.status === 200 || resp.data > 0) {
+        alert("답변이 성공적으로 전송되었습니다.");
+        getQnaData(); // 목록 새로고침
       }
     } catch (error) {
-      console.log(error);
-      alert("전송 실패...");
+      console.error("답변 전송 에러:", error);
+      alert("전송에 실패했습니다. 관리자에게 문의하세요.");
     } finally {
-      setEmailStatus(false);
+      setEmailStatus(false); // 로딩 표시 끄기
     }
   };
 
   const isCompleted = selectedUser.qnaStatus?.trim() === "Y";
 
   return (
-    <div className="w-full h-full flex flex-col font-sans max-w-[1200px] mx-auto">
-      {emailStatus && <EmailStatus text={"메일 전송 중..."} />}
+    <div className="w-full h-full flex flex-col font-sans max-w-[1200px] mx-auto p-4">
+      {emailStatus && <EmailStatus text={"답변 등록 및 메일 전송 중..."} />}
 
-      {/* --- 모달 (반응형: w-[95%] max-w-[650px]) --- */}
+      {/* --- 모달 UI --- */}
       {modal && (
         <div className="fixed inset-0 z-50 flex justify-center items-center px-4">
           <div
@@ -135,11 +151,12 @@ const AdminQna = () => {
               </button>
             </div>
 
-            <div className="p-6 md:p-8 overflow-y-auto">
+            <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar">
               {answerModal ? (
+                // 답변 작성 모드
                 <div className="flex flex-col gap-6">
                   <div className="flex flex-col gap-2">
-                    <label className="font-bold text-gray-700">제목</label>
+                    <label className="font-bold text-gray-700">답변 제목</label>
                     <input
                       name="title"
                       className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-[#EE4B6F]"
@@ -148,21 +165,23 @@ const AdminQna = () => {
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="font-bold text-gray-700">내용</label>
+                    <label className="font-bold text-gray-700">답변 내용</label>
                     <textarea
                       name="content"
                       className="w-full h-[250px] md:h-[350px] border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-[#EE4B6F] resize-none"
-                      placeholder="내용을 입력하세요"
+                      placeholder="고객님께 전달할 답변 내용을 입력하세요."
                       value={content.content}
                       onChange={onChangeHandler}
                     />
                   </div>
                 </div>
               ) : (
+                // 상세 보기 모드
                 <div className="flex flex-col gap-6">
                   <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 flex flex-col gap-4">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-200 pb-3 gap-2">
                       <span className="font-bold text-gray-800 text-lg line-clamp-1">
+                        {/* DTO: qnaTitle */}
                         {selectedUser.qnaTitle}
                       </span>
                       <span className="text-gray-400 text-sm whitespace-nowrap">
@@ -170,10 +189,11 @@ const AdminQna = () => {
                       </span>
                     </div>
                     <div className="flex flex-col gap-1 text-sm text-gray-500">
-                      <span>닉네임: {selectedUser.nickname}</span>
+                      <span>작성자: {selectedUser.nickname || "익명"}</span>
                       <span>이메일: {selectedUser.email}</span>
                     </div>
                     <div className="bg-white p-4 rounded-lg border border-gray-200 text-gray-700 min-h-[100px] whitespace-pre-wrap leading-relaxed">
+                      {/* DTO: qnaContent */}
                       {selectedUser.qnaContent}
                     </div>
                   </div>
@@ -184,6 +204,7 @@ const AdminQna = () => {
                         관리자 답변
                       </div>
                       <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                        {/* DTO: answerContent */}
                         {selectedUser.answerContent}
                       </div>
                     </div>
@@ -231,9 +252,8 @@ const AdminQna = () => {
         </div>
       )}
 
-      {/* --- 메인 컨텐츠 영역 --- */}
+      {/* --- 메인 리스트 --- */}
       <div className="w-full">
-        {/* 헤더 & 필터 (모바일: 세로, 데스크탑: 가로) */}
         <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
             QnA 관리
@@ -252,7 +272,7 @@ const AdminQna = () => {
           </select>
         </div>
 
-        {/* [1] 모바일용 카드 리스트 뷰 (md:hidden) */}
+        {/* [1] 모바일 리스트 */}
         <div className="grid grid-cols-1 gap-4 md:hidden mb-6">
           {currentItems.length > 0 ? (
             currentItems.map((item) => (
@@ -279,7 +299,7 @@ const AdminQna = () => {
                     <h3 className="font-bold text-gray-800 text-lg line-clamp-1">
                       {item.qnaTitle}
                     </h3>
-                    <p className="text-xs text-gray-500">{item.nickname}</p>
+                    <p className="text-xs text-gray-500">{item.email}</p>
                   </div>
                 </div>
 
@@ -297,19 +317,19 @@ const AdminQna = () => {
             ))
           ) : (
             <div className="py-20 text-center text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
-              문의 내역이 없습니다.
+              데이터가 없습니다.
             </div>
           )}
         </div>
 
-        {/* [2] 데스크탑용 테이블 뷰 (hidden md:block) */}
+        {/* [2] 데스크탑 테이블 */}
         <div className="hidden md:block w-full overflow-hidden bg-white shadow-sm rounded-2xl border border-gray-100 mb-6">
           <table className="w-full table-fixed text-center border-collapse">
             <thead className="bg-[#fff0f3] text-gray-700 h-14 border-b-2 border-[#EE4B6F]/30 text-sm">
               <tr>
                 <th className="w-[10%] font-bold">번호</th>
                 <th className="w-[35%] font-bold">제목</th>
-                <th className="w-[15%] font-bold">닉네임</th>
+                <th className="w-[15%] font-bold">작성자</th>
                 <th className="w-[20%] font-bold">작성일</th>
                 <th className="w-[10%] font-bold">상태</th>
                 <th className="w-[10%] font-bold">관리</th>
@@ -326,7 +346,7 @@ const AdminQna = () => {
                     <td className="text-left px-6 truncate font-medium text-gray-700">
                       {item.qnaTitle}
                     </td>
-                    <td className="truncate">{item.nickname}</td>
+                    <td className="truncate">{item.nickname || item.email}</td>
                     <td className="text-gray-400">{item.qnaDate}</td>
                     <td>
                       <span
@@ -372,14 +392,14 @@ const AdminQna = () => {
             <button
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
-              className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 disabled:opacity-30 transition-all"
+              className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 disabled:opacity-30"
             >
               <ChevronLeft size={20} />
             </button>
             <button
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
-              className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 disabled:opacity-30 transition-all"
+              className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 disabled:opacity-30"
             >
               <ChevronLeft size={20} />
             </button>
@@ -388,11 +408,7 @@ const AdminQna = () => {
                 <button
                   key={n}
                   onClick={() => setCurrentPage(n)}
-                  className={`w-9 h-9 rounded-lg text-sm font-bold transition-all shadow-sm ${
-                    currentPage === n
-                      ? "bg-[#EE4B6F] text-white transform scale-105"
-                      : "bg-white text-gray-500 hover:bg-gray-50 border border-gray-100"
-                  }`}
+                  className={`w-9 h-9 rounded-lg text-sm font-bold transition-all shadow-sm ${currentPage === n ? "bg-[#EE4B6F] text-white transform scale-105" : "bg-white text-gray-500 hover:bg-gray-50 border border-gray-100"}`}
                 >
                   {n}
                 </button>
@@ -403,14 +419,14 @@ const AdminQna = () => {
                 setCurrentPage(Math.min(totalPages, currentPage + 1))
               }
               disabled={currentPage === totalPages}
-              className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 disabled:opacity-30 transition-all"
+              className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 disabled:opacity-30"
             >
               <ChevronRight size={20} />
             </button>
             <button
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
-              className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 disabled:opacity-30 transition-all"
+              className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 disabled:opacity-30"
             >
               <ChevronRight size={20} />
             </button>

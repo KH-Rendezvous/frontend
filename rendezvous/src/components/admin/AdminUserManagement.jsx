@@ -6,6 +6,8 @@ import {
   MapPin,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft, // 추가
+  ChevronsRight, // 추가
   X,
 } from "lucide-react";
 
@@ -24,10 +26,21 @@ const AdminUserManagement = () => {
   // --- 2. 데이터 불러오기 ---
   const getUserData = async () => {
     try {
-      const resp = await axiosApi.get("/admin/members");
-      setUserList(resp.data);
+      // 주소 확인: /api/admin/members (정상)
+      const resp = await axiosApi.get("/api/admin/members");
+      console.log("회원 목록 응답:", resp.data);
+
+      if (Array.isArray(resp.data)) {
+        setUserList(resp.data);
+      } else if (resp.data && Array.isArray(resp.data.data)) {
+        setUserList(resp.data.data);
+      } else {
+        console.warn("데이터가 배열 형식이 아닙니다:", resp.data);
+        setUserList([]);
+      }
     } catch (error) {
       console.error("회원 목록 로딩 실패:", error);
+      setUserList([]);
     }
   };
 
@@ -49,16 +62,18 @@ const AdminUserManagement = () => {
     return `${year}-${month}-${day}`;
   };
 
-  // --- 3. 필터링 로직 ---
-  const filteredUser = userList.filter((user) => {
-    const status = user.memberStatus
-      ? user.memberStatus.trim().toUpperCase()
-      : "N";
-    if (selectType === "all") return true;
-    if (selectType === "unanswered") return status === "N";
-    if (selectType === "answered") return status === "Y";
-    return true;
-  });
+  // --- 3. 필터링 로직 (안전장치 추가) ---
+  const filteredUser = Array.isArray(userList)
+    ? userList.filter((user) => {
+        const status = user.memberStatus
+          ? user.memberStatus.trim().toUpperCase()
+          : "N";
+        if (selectType === "all") return true;
+        if (selectType === "unanswered") return status === "N";
+        if (selectType === "answered") return status === "Y";
+        return true;
+      })
+    : [];
 
   // --- 4. 페이지네이션 ---
   const totalItems = filteredUser.length;
@@ -66,10 +81,12 @@ const AdminUserManagement = () => {
   const currentGroup = Math.ceil(currentPage / pageGroupSize);
   const startPage = (currentGroup - 1) * pageGroupSize + 1;
   const endPage = Math.min(startPage + pageGroupSize - 1, totalPages);
+
   const currentItems = filteredUser.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   );
+
   const pageNumbers = [];
   for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
 
@@ -118,7 +135,7 @@ const AdminUserManagement = () => {
     setStatusModal(true);
   };
 
-  // 상태 변경 API 호출
+  // [수정] 상태 변경 API 호출 (주소 변경)
   const submitStatusHandler = async () => {
     const isApproving = selectedUser.memberStatus === "N";
     const actionText = isApproving ? "승인" : "비활성";
@@ -126,7 +143,8 @@ const AdminUserManagement = () => {
     if (isApproving) setEmailStatus(true);
 
     try {
-      const resp = await axiosApi.post("/admin/status", {
+      // 주소 변경: /admin/status (X) -> /api/admin/status (O)
+      const resp = await axiosApi.post("/api/admin/status", {
         memberNo: selectedUser.memberNo,
         email: selectedUser.email,
         nickname: selectedUser.nickname,
@@ -137,7 +155,7 @@ const AdminUserManagement = () => {
         if (isApproving) setEmailStatus(false);
         setTimeout(() => {
           alert(`${actionText} 처리가 완료되었습니다.`);
-          getUserData();
+          getUserData(); // 목록 새로고침
         }, 100);
       }
     } catch (error) {
@@ -150,7 +168,7 @@ const AdminUserManagement = () => {
   const isApprovingTarget = selectedUser.memberStatus === "N";
 
   return (
-    <div className="w-full flex flex-col font-sans max-w-[1200px] mx-auto">
+    <div className="w-full flex flex-col font-sans max-w-[1200px] mx-auto p-4">
       {emailStatus && <EmailStatus text={"메일 전송 중..."} />}
 
       {/* --- 프로필 상세 모달 --- */}
@@ -430,9 +448,7 @@ const AdminUserManagement = () => {
         </select>
       </div>
 
-      {/* ================================================================= */}
-      {/* [1] 모바일용 카드 리스트 뷰 (md:hidden) */}
-      {/* ================================================================= */}
+      {/* [1] 모바일용 카드 리스트 뷰 */}
       <div className="grid grid-cols-1 gap-4 md:hidden w-full mb-6">
         {currentItems.length > 0 ? (
           currentItems.map((user) => (
@@ -497,9 +513,7 @@ const AdminUserManagement = () => {
         )}
       </div>
 
-      {/* ================================================================= */}
-      {/* [2] 데스크탑용 테이블 뷰 (hidden md:block) */}
-      {/* ================================================================= */}
+      {/* [2] 데스크탑용 테이블 뷰 */}
       <div className="hidden md:block w-full overflow-hidden bg-white shadow-sm rounded-lg border border-gray-100 mb-6">
         <table className="w-full text-center border-collapse">
           <thead className="bg-[#fff0f3] text-gray-700 h-12 border-b-2 border-[#EE4B6F]">
@@ -568,32 +582,32 @@ const AdminUserManagement = () => {
         </table>
       </div>
 
-      {/* --- 페이지네이션 --- */}
+      {/* --- 페이지네이션 (아이콘 적용됨) --- */}
       {totalPages > 0 && (
-        <div className="flex justify-center items-center gap-2 pb-10 mt-auto">
+        <div className="flex justify-center items-center gap-2 mt-8 pb-10 select-none">
           <button
             onClick={() => setCurrentPage(1)}
             disabled={currentPage === 1}
             className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 disabled:opacity-30 transition-all"
           >
-            &lt;&lt;
+            <ChevronsLeft size={20} />
           </button>
           <button
             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
             className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 disabled:opacity-30 transition-all"
           >
-            &lt;
+            <ChevronLeft size={20} />
           </button>
-          <div className="flex gap-1">
+          <div className="flex gap-1 mx-2">
             {pageNumbers.map((n) => (
               <button
                 key={n}
                 onClick={() => setCurrentPage(n)}
-                className={`w-8 h-8 rounded-lg text-sm font-bold transition-all ${
+                className={`w-9 h-9 rounded-lg text-sm font-bold transition-all shadow-sm ${
                   currentPage === n
-                    ? "bg-[#EE4B6F] text-white shadow-md"
-                    : "text-gray-500 hover:bg-gray-100"
+                    ? "bg-[#EE4B6F] text-white transform scale-105"
+                    : "bg-white text-gray-500 hover:bg-gray-50 border border-gray-100"
                 }`}
               >
                 {n}
@@ -607,14 +621,14 @@ const AdminUserManagement = () => {
             disabled={currentPage === totalPages}
             className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 disabled:opacity-30 transition-all"
           >
-            &gt;
+            <ChevronRight size={20} />
           </button>
           <button
             onClick={() => setCurrentPage(totalPages)}
             disabled={currentPage === totalPages}
             className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 disabled:opacity-30 transition-all"
           >
-            &gt;&gt;
+            <ChevronsRight size={20} />
           </button>
         </div>
       )}
