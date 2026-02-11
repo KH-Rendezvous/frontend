@@ -70,8 +70,6 @@ const MyPageMain = () => {
           console.warn("공통 코드 로딩 실패");
         }
 
-        // [수정] 내 프로필 정보 가져오기 (회원 번호 실어서 보내기)
-        // 로그인 안 되어있으면 0이나 1을 보내거나, 아예 요청을 막을 수도 있음
         const targetMemberNo = loginMember ? loginMember.memberNo : 0;
 
         const profileRes = await axiosApi.get("/api/mypage/profile", {
@@ -88,9 +86,15 @@ const MyPageMain = () => {
             dbData.profileList.forEach((photo) => {
               const idx = photo.photoOrder - 1;
               if (idx >= 0 && idx < 6) {
+                // [수정] DB에 저장된 경로(photoUrl)가 이미 파일명(renameName)으로 끝나는지 확인
+                // 끝나면 그대로 쓰고, 안 끝나면 뒤에 붙여줌 (삼항 연산자 사용)
+                const finalUrl = photo.photoUrl.endsWith(photo.renameName)
+                  ? `${axiosApi.defaults.baseURL}${photo.photoUrl}`
+                  : `${axiosApi.defaults.baseURL}${photo.photoUrl}${photo.renameName}`;
+
                 newImages[idx] = {
                   id: photo.photoId,
-                  url: `${axiosApi.defaults.baseURL}${photo.photoUrl}`,
+                  url: finalUrl, // 수정된 URL 적용
                   file: null,
                   order: photo.photoOrder,
                 };
@@ -223,7 +227,7 @@ const MyPageMain = () => {
     setShowRegionModal(false);
   };
 
-  // [수정] 제출 핸들러
+  // [수정] 제출 핸들러 (이 부분이 핵심 수정 사항임)
   const handleFinalSubmit = async () => {
     // 1. 로그인 체크
     if (!loginMember) {
@@ -264,9 +268,9 @@ const MyPageMain = () => {
     try {
       const formData = new FormData();
 
-      // [수정] 현재 로그인한 회원 번호 사용
+      // [수정] 기존 이미지들의 정보도 같이 보낸다 (preservedImages)
       const textData = {
-        memberNo: loginMember.memberNo, // LocalStorage에서 가져온 값
+        memberNo: loginMember.memberNo,
         nickname: userData.nickname,
         intro: userData.intro,
         mbti: userData.mbti,
@@ -283,6 +287,15 @@ const MyPageMain = () => {
         social: userData.social,
         regionId: userData.regionId ? userData.regionId : 0,
         schNo: userData.schNo ? userData.schNo : null,
+        // 여기가 핵심: 이미지는 있는데 새 파일이 없는 애들(기존 이미지)의 순서와 ID를 추출
+        preservedImages: profileImages
+          .map((img, index) => {
+            if (img && img.id && !img.file) {
+              return { photoId: img.id, photoOrder: index + 1 };
+            }
+            return null;
+          })
+          .filter((item) => item !== null),
       };
 
       formData.append(
@@ -290,6 +303,7 @@ const MyPageMain = () => {
         new Blob([JSON.stringify(textData)], { type: "application/json" }),
       );
 
+      // 새 파일들만 images 파라미터로 전송
       profileImages.forEach((img, index) => {
         if (img && img.file) {
           formData.append("images", img.file);
