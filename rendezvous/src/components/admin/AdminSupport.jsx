@@ -103,7 +103,7 @@ const AdminSupport = () => {
     setModal(false);
 
     try {
-      const resp = await axiosApi.post("/email/support", {
+      const resp = await axiosApi.post("/api/email/support", {
         supportNo: content.supportNo,
         title: content.title,
         content: content.content,

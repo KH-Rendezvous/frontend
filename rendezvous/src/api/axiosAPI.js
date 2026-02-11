@@ -12,6 +12,20 @@ export const axiosApi = axios.create({
 // =================================================================
 axiosApi.interceptors.request.use(
   (config) => {
+    // 1. 토큰 없이 보내야 할 요청들의 키워드 리스트
+    const publicKeywords = [
+      "/login", // 로그인
+      "/signup", // 회원가입 (이메일 전송, 최종 가입 포함됨)
+      "/member/check", // 중복 확인, 인증키 확인
+      "/email", // 이메일 관련
+      "/find", // 아이디/비번 찾기
+    ];
+
+    if (publicKeywords.some((keyword) => config.url.includes(keyword))) {
+      return config;
+    }
+
+    // 2. 나머지 요청엔 토큰 팍팍 넣어줌
     const token = localStorage.getItem("accessToken");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -42,6 +56,10 @@ axiosApi.interceptors.response.use(
   (response) => response, // 성공 시 그대로 통과
   async (error) => {
     const originalRequest = error.config;
+
+    if (!localStorage.getItem("accessToken")) {
+      return Promise.reject(error);
+    }
 
     // 401 에러이고, 아직 재시도 안 한 요청이라면
     if (
@@ -75,10 +93,9 @@ axiosApi.interceptors.response.use(
         }
 
         // 백엔드에 새 토큰 요청
-        const { data } = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL}/api/member/refresh`,
-          { refreshToken: refreshToken },
-        );
+        const { data } = await axios.post("/api/member/refresh", {
+          refreshToken: refreshToken,
+        });
 
         console.log("✅ 새 토큰 발급 완료");
 

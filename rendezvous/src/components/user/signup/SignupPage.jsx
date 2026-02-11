@@ -169,7 +169,7 @@ const SignupPage = () => {
         return;
       }
 
-      const response = await axiosApi.post("/email/signup", {
+      const response = await axiosApi.post("/api/email/signup", {
         email: formData.email,
       });
 
@@ -203,7 +203,7 @@ const SignupPage = () => {
     }
 
     try {
-      const response = await axiosApi.post("/email/check", {
+      const response = await axiosApi.post("/api/email/check", {
         email: formData.email,
         authKey: formData.authKey,
       });
@@ -619,7 +619,11 @@ const SignupPage = () => {
     });
 
     try {
-      const response = await axiosApi.post("/api/member/signup", submitData);
+      const response = await axiosApi.post("/api/member/signup", submitData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       if (response.data === 1) {
         alert("가입 신청이 완료되었습니다!"); // 사용자에게 성공 알림
