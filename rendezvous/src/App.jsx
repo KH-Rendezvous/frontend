@@ -25,6 +25,7 @@ import Terms from "./components/policy/Terms";
 import PrivateRoute from "./components/auth/PrivateRoute";
 import FindEmail from "./pages/user/FindEmail";
 import FindPassword from "./pages/user/FindPassword";
+import AdminRoute from "./components/admin/AdminRoute";
 
 function App() {
   return (
@@ -52,7 +53,9 @@ function App() {
       <Route element={<PrivateRoute />}>
         {/* 2-1. 단독 페이지 (레이아웃 없음) */}
         <Route path="/myPage" element={<MyPage />} />
-        <Route path="/admin/*" element={<AdminPage />} />
+        <Route element={<AdminRoute />}>
+          <Route path="/admin/*" element={<AdminPage />} />
+        </Route>
 
         {/* 2-2. MainLayout을 쓰는 페이지들 */}
         <Route element={<MainLayout />}>
