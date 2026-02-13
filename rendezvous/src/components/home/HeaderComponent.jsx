@@ -80,6 +80,17 @@ const HeaderComponent = () => {
                 👋 {loginMember.nickname}님 환영합니다
               </span>
 
+              {/* 관리자 버튼 (권한 체크: 니 DB 설정에 따라 조건문 수정해라. 보통 2가 관리자임) */}
+              {loginMember.authority === 2 && (
+                <Link
+                  to="/admin"
+                  className="bg-gray-800 text-white px-5 py-2.5 rounded-full font-bold shadow-md 
+                  hover:bg-gray-900 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 text-sm md:text-base"
+                >
+                  Admin
+                </Link>
+              )}
+
               {/* My Page 버튼 */}
               <Link
                 to="/myPage"
@@ -95,7 +106,7 @@ const HeaderComponent = () => {
                 className="px-4 py-2 rounded-full text-gray-500 font-bold text-sm 
                           hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400 transition-all duration-200 ml-2"
               >
-                로그아웃
+                Logout
               </button>
             </>
           ) : (

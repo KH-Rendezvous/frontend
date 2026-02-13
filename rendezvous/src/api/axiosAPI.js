@@ -21,7 +21,12 @@ axiosApi.interceptors.request.use(
       "/find", // 아이디/비번 찾기
     ];
 
-    if (publicKeywords.some((keyword) => config.url.includes(keyword))) {
+    // 요청 URL에 public 키워드가 포함되어 있으면 토큰 없이 통과
+    if (
+      publicKeywords.some(
+        (keyword) => config.url && config.url.includes(keyword),
+      )
+    ) {
       return config;
     }
 
@@ -36,7 +41,7 @@ axiosApi.interceptors.request.use(
 );
 
 // =================================================================
-// 응답 인터셉터: 토큰 만료 처리 (줄 세우기 로직 추가)
+// 응답 인터셉터: 에러 처리 (403 권한 없음 & 401 토큰 만료)
 // =================================================================
 let isRefreshing = false; // 현재 토큰 갱신 중인지 체크하는 플래그
 let refreshSubscribers = []; // 토큰 갱신 대기 중인 요청들을 담아둘 배열
@@ -57,16 +62,32 @@ axiosApi.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // 응답 자체가 없는 네트워크 에러 등은 바로 reject
+    if (!error.response) {
+      return Promise.reject(error);
+    }
+
+    const { status } = error.response;
+
+    // =================================================================
+    // [추가됨] 1. 403 Forbidden 처리 (관리자 권한 없음)
+    // =================================================================
+    if (status === 403) {
+      alert("관리자 권한이 필요합니다. 접근이 거부되었습니다.");
+      window.location.href = "/"; // 메인 페이지로 강제 이동
+      return Promise.reject(error);
+    }
+
+    // =================================================================
+    // 2. 401 Unauthorized 처리 (토큰 만료 -> 재발급 로직)
+    // =================================================================
+
+    // 로컬 스토리지에 토큰이 없는데 401이면 그냥 로그인 안 한 거임
     if (!localStorage.getItem("accessToken")) {
       return Promise.reject(error);
     }
 
-    // 401 에러이고, 아직 재시도 안 한 요청이라면
-    if (
-      error.response &&
-      error.response.status === 401 &&
-      !originalRequest._retry
-    ) {
+    if (status === 401 && !originalRequest._retry) {
       // 이미 다른 요청이 토큰 갱신을 진행 중이라면 -> 대기열에 합류
       if (isRefreshing) {
         return new Promise((resolve) => {
