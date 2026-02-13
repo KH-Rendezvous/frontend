@@ -77,7 +77,7 @@ const HeaderComponent = () => {
             <>
               {/* 환영 문구 */}
               <span className="text-gray-700 font-bold px-4 py-2 bg-gray-50 rounded-lg border border-gray-100 text-sm md:text-base">
-                👋 {loginMember.nickname}님 환영합니다
+                👋 {loginMember.nickname}님 환영합니다!
               </span>
 
               {/* 관리자 버튼 (권한 체크: 니 DB 설정에 따라 조건문 수정해라. 보통 2가 관리자임) */}

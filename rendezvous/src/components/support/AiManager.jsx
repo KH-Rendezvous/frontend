@@ -8,78 +8,157 @@ export default function AiManager() {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [userName, setUserName] = useState("회원");
+  const textareaRef = useRef(null);
 
   const chatSessionRef = useRef(null);
   const messagesEndRef = useRef(null);
   const hasInitialized = useRef(false);
+  const MAX_LENGTH = 200;
 
   const initChat = async () => {
     try {
+      // 1. 사용자 정보 가져오기 & 이름 다듬기
+      let currentName = "회원";
+      let targetGender = "F";
+
+      const storedMember = localStorage.getItem("loginMember");
+
+      if (storedMember) {
+        const parsedMember = JSON.parse(storedMember);
+        const fullName = parsedMember.name || parsedMember.nickname || "회원";
+
+        // 사용자 이름 성 떼기
+        if (fullName.length >= 3) {
+          currentName = fullName.substring(1);
+        } else {
+          currentName = fullName;
+        }
+
+        if (parsedMember.targetGender && parsedMember.targetGender !== "A") {
+          targetGender = parsedMember.targetGender;
+        }
+      }
+
+      setUserName(currentName);
+
+      // 2. 페르소나 설정 (★ TMI 삭제, 관심사 확장)
+      const persona =
+        targetGender === "F"
+          ? {
+              name: "지민",
+              age: "26세",
+              job: "웹 디자이너",
+              mbti: "ENFP",
+              // 구체적인 TMI 대신 넓은 카테고리 설정
+              interests:
+                "맛집(한식/일식), 여행(국내/해외), 영화/넷플릭스, 전시회, 소소한 일상",
+              tone: "리액션이 좋고 질문이 많은",
+              firstLine: `안녕하세요 ${currentName}씨! 사진보다 실물이 훨씬 좋으시네요 ㅎㅎ 오시느라 힘들진 않으셨어요?`,
+            }
+          : {
+              name: "민준",
+              age: "27세",
+              job: "건축 설계사",
+              mbti: "ISTJ",
+              // 구체적인 TMI 대신 넓은 카테고리 설정
+              interests: "운동/건강, 재테크, IT기기, 커피/카페, 드라이브",
+              tone: "차분하고 경청을 잘하는",
+              firstLine: `안녕하세요 ${currentName}씨, 맞으시죠? 실물이 더 아름다우시네요. 오는 길 안 막히셨어요?`,
+            };
+
+      // 3. 모델 초기화
       const model = genAI.getGenerativeModel({
         model: "gemini-2.5-flash",
         systemInstruction: `
-당신은 데이팅 앱 '랑데뷰(Rendezvous)'의 AI 연애 코치입니다. 사용자 이름은 '재훈'입니다.
-단순한 챗봇이 아니라, **'실시간 교정'과 '모범 답안 제시'**를 해주는 1:1 과외 선생님입니다.
+당신은 데이팅 앱 '랑데뷰'의 AI 연애 코치입니다. 사용자 이름은 '${currentName}'입니다.
+'실시간 교정'과 '모범 답안 제시'를 해주는 1:1 과외 선생님입니다.
 
-[⭐️ 핵심 모드 전환 로직 - 이것을 반드시 지키세요]
+[🦸 페르소나 설정: 상대방 '${persona.name}']
+- 기본: ${persona.age} / ${persona.job}
+- 성격: ${persona.tone} 스타일.
+- 관심사: ${persona.interests}
+- 역할: 평소엔 코치로서 조언하다가, '1번 모드'가 되면 **${persona.name}**에 빙의하세요.
 
-1. **초기 상태 (메뉴 대기)**
-   - 첫 인사: "안녕하세요 재훈님! 랑데뷰 AI 코치입니다. 🥰 오늘 어떤 걸 도와드릴까요?
-     1. 두근두근 소개팅 대화 연습 🍷
-     2. 어색함 타파! 아이스브레이킹 🧊"
+[⭐️ 핵심 모드 전환 로직]
 
-2. **모드 1 진입 트리거 ("1", "1번", "소개팅" 입력 시)**
-   - 🚫 **금지**: "알겠습니다", "상황을 시작합니다", "테이블에 앉아 있습니다" 같은 **진행 멘트 절대 금지**.
-   - ✅ **행동**: **그 즉시** 소개팅 상대 '지민(26세, 웹디자이너)'에 빙의해서 첫 대사를 던지세요.
-   - **지민의 첫 대사**: "안녕하세요 재훈씨! 사진보다 실물이 훨씬 좋으시네요 ㅎㅎ 오시느라 힘들진 않으셨어요?"
+1. [초기 상태 (메뉴 대기)]
+  - 첫 인사: "안녕하세요 ${currentName}님! 랑데뷰 AI 코치입니다.🥰
+  (상대: ${persona.name})
+    1. 두근두근 소개팅 연습 🍷 (with ${persona.name})
+    2. 대화 주제 추천받기 🧊"
 
-3. **[중요] 대화 평가 및 피드백 루프 (매 턴 실행)**
-   사용자의 답변이 들어오면 **속으로 먼저 평가**한 뒤, 아래 두 가지 반응 중 하나를 선택해서 출력하세요.
+2. [모드 1 진입 ("1", "소개팅" 입력 시)]
+  - 🚫 금지: 진행 멘트 절대 금지.
+  - ✅ 행동: 즉시 '${persona.name}'에 빙의하여 첫 대사 출력.
+  - ${persona.name}의 첫 대사: "${persona.firstLine}"
+   
+  ★ [대화 전략 - 중요]: 
+  - 억지로 본인의 설정(관심사)을 끼워 넣지 마세요.
+   - **사용자의 말에 집중**하고, 그 내용에 대해 **'꼬리를 무는 질문'**을 하세요.
+  - 예: 사용자가 "영화 좋아해요"라고 하면 -> "오 저도요! 최근에 본 것 중에 인생 영화 있으세요?"라고 반응.
+  - 대화가 끊길 것 같을 때만 본인의 관심사(${persona.interests}) 중 하나를 꺼내세요.
 
-   **상황 A: 답변이 좋을 때 (칭찬 + 대화 진행)**
-   - 조건: 문장이 완성되어 있고, 매너가 좋거나 센스 있는 답변.
-   - 출력 형식:
-     "💡 [코치] 오, 좋아요! '실물이 더 멋지다'는 칭찬 아주 자연스러웠어요. 👍
-     
-     (여기서부터 지민) 아 정말요? 재훈씨한테 그런 말 들으니까 기분 되게 좋네요! ㅎㅎ 재훈씨는 평소에 칭찬 잘하시는 편인가 봐요?"
+3. [모드 2 진입 ("2", "아이스브레이킹" 입력 시)]
+  - 역할: '${persona.name}'가 아닌 '코치'로서, ${persona.name}의 관심사(${persona.interests})를 바탕으로 자연스러운 질문 3가지를 추천하세요.
 
-   **상황 B: 답변이 별로일 때 (지적 + 정답 예시 + 재시도)**
-   - 조건: "ㅇㅇ", "ㄴㄴ", "몰라", "..." 같은 단답형, 무례한 말, 맥락 없는 말.
-   - 행동: **지민의 대답을 하지 말고**, 코치로서 개입하여 가르치세요.
-   - 출력 형식:
-     "🚨 [코치] 잠깐만요 재훈님! 방금 답변은 너무 성의가 없어서 상대방이 할 말이 없게 만들어요. 😫
-     
-     이럴 땐 이렇게 받아쳐야 점수를 땁니다:
-     👉 **모범 답안**: '아니에요, 지민씨야말로 실물이 훨씬 아름다우시네요! 들어오실 때 깜짝 놀랐어요.'
-     
-     자, 위 예시를 참고해서 다시 답변해보세요! (지민이가 기다리는 중)"
+4. [핵심] 대화 평가 및 피드백 루프 (매 턴 실행)
+  사용자의 답변을 평가하여 반응하세요.
+
+  [상황 A: 답변이 좋을 때 (칭찬 + 대화 심화)]
+  - 조건: 문장 완성도 높음, 매너 있음, 적절한 리액션.
+   - 행동: 칭찬 후, **${persona.name}로서 호감 표시 + 되묻기**
+  - 출력 형식:
+    "💡 [코치] 좋아요! 아주 자연스러운 답변이었어요. 👍
+    
+    (${persona.name}) 아 정말요? 저랑 통하는 게 있네요! 그럼 ${currentName}씨는 주말에 주로 뭐 하세요?"
+
+  [상황 B: 답변이 별로일 때 (지적 + 모범 답안)]
+  - 조건: 단답형("ㅇㅇ", "네"), 무례함, 맥락 없음.
+  - 출력 형식:
+    "🚨 [코치] 잠깐만요 ${currentName}님! 대화가 너무 딱딱해요. 😫
+    
+    이렇게 바꿔보면 어떨까요?
+    👉 [모범 답안]: '저는 주말에 맛있는 거 먹으러 다니는 거 좋아해요. ${persona.name}씨는 좋아하시는 음식 있으세요?'
+    
+    자, 위 예시를 참고해서 다시 답변해보세요!"
 
 [절대 금지 사항]
-- 답변이 'Bad' 판정을 받으면 대화 진도를 나가지 마세요. 재훈님이 다시 제대로 말할 때까지 기다리세요.
-- 마크다운(**굵게** 등) 사용 금지.
-- **지민:**, **나:** 같은 이름표 붙이지 말 것. (위의 코치 피드백 구간 제외)
+- 답변이 'Bad' 판정을 받으면 대화 진도를 나가지 마세요.
+- ★★★ 텍스트 강조 시 별표(*)를 절대 사용하지 마세요. 대신 대괄호([ ])를 사용하세요.
+- ${persona.name}:, 나: 같은 이름표 붙이지 말 것. (코치 피드백 구간 제외)
 `,
       });
 
       chatSessionRef.current = model.startChat({ history: [] });
-      const result = await chatSessionRef.current.sendMessage(
-        "첫 인사와 메뉴를 보여줘."
-      );
+      const result =
+        await chatSessionRef.current.sendMessage("첫 인사와 메뉴를 보여줘.");
       addMessage(result.response.text(), "ai");
     } catch (error) {
       console.error(error);
-      addMessage(
-        "🚨 연결 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
-        "ai"
-      );
+      addMessage("🚨 연결 오류가 발생했습니다.", "ai");
     }
   };
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [inputText]);
 
   useEffect(() => {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
     initChat();
   }, []);
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -118,7 +197,7 @@ export default function AiManager() {
           </h2>
         </div>
 
-        {/* 채팅창 컨테이너 (실제 서비스 느낌) */}
+        {/* 채팅창 컨테이너 */}
         <div className="w-full max-w-[480px] h-[85vh] flex flex-col bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-gray-100 overflow-hidden relative transition-all">
           {/* 채팅 헤더 */}
           <div className="p-6 bg-gradient-to-b from-[#fff0f3] to-white border-b border-pink-50 flex items-center justify-between">
@@ -132,28 +211,13 @@ export default function AiManager() {
                 </h3>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                  {/* ★ [수정 4] 동적 이름 변수 사용 */}
                   <span className="text-[11px] text-gray-400 font-bold">
-                    재훈님 코칭 중
+                    {userName}님 코칭 중
                   </span>
                 </div>
               </div>
             </div>
-            <button className="text-gray-300 hover:text-[#ee4b6f]">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                />
-              </svg>
-            </button>
           </div>
 
           {/* 메시지 영역 */}
@@ -191,16 +255,42 @@ export default function AiManager() {
 
           {/* 입력창 영역 */}
           <div className="p-6 bg-white border-t border-gray-50">
-            <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-[1.5rem] px-5 py-2 focus-within:ring-4 focus-within:ring-[#ee4b6f]/5 focus-within:bg-white transition-all shadow-inner group">
-              <input
-                className="flex-1 py-3 bg-transparent outline-none text-[14px] text-gray-700 placeholder:text-gray-400 font-medium"
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                placeholder="답변을 입력하세요..."
-              />
+            {/* items-center -> items-end로 변경 (줄바꿈 시 버튼 하단 고정) */}
+            <div className="flex items-end gap-3 bg-gray-50 border border-gray-200 rounded-[1.5rem] px-5 py-3 focus-within:ring-4 focus-within:ring-[#ee4b6f]/5 focus-within:bg-white transition-all shadow-inner group">
+              {/* 텍스트에리어와 카운터를 감싸는 래퍼 (flex-col) */}
+              <div className="flex-1 flex flex-col">
+                <textarea
+                  ref={textareaRef}
+                  className="w-full bg-transparent outline-none text-[14px] text-gray-700 placeholder:text-gray-400 font-medium resize-none overflow-y-auto leading-relaxed scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent pr-2"
+                  value={inputText}
+                  onChange={(e) => {
+                    if (e.target.value.length <= MAX_LENGTH) {
+                      setInputText(e.target.value);
+                    }
+                  }}
+                  onKeyDown={handleKeyDown}
+                  placeholder="답변을 입력하세요..."
+                  rows={1}
+                  style={{ maxHeight: "120px" }}
+                />
+
+                {/* ★ 글자 수 카운터 표시 */}
+                <div className="text-right mt-1.5 mr-1">
+                  <span
+                    className={`text-[10px] font-bold tracking-wide transition-colors ${
+                      inputText.length >= MAX_LENGTH
+                        ? "text-red-500"
+                        : "text-gray-300"
+                    }`}
+                  >
+                    {inputText.length} / {MAX_LENGTH}
+                  </span>
+                </div>
+              </div>
+
+              {/* 전송 버튼 */}
               <button
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 shadow-md ${
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 shadow-md mb-0.5 ${
                   inputText.trim()
                     ? "bg-[#ee4b6f] text-white"
                     : "bg-gray-200 text-white cursor-not-allowed"
@@ -224,7 +314,7 @@ export default function AiManager() {
         {/* 우측 하단 장식 텍스트 */}
         <div className="absolute bottom-10 right-10 text-right">
           <p className="text-[11px] font-black text-gray-400 opacity-30 leading-tight uppercase">
-            Powered by Gemini 2.0 Flash
+            Powered by Gemini 2.5 Flash
             <br />
             Optimized for Rendezvous
           </p>
