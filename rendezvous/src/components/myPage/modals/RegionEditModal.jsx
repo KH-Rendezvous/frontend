@@ -4,7 +4,7 @@ import { axiosApi } from "../../../api/axiosAPI";
 
 const RegionEditModal = ({ currentRegion, onClose, onSave }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchResult, setSearchResult] = useState([]); // ★ 서버 데이터 담을 곳
+  const [searchResult, setSearchResult] = useState([]);
   const [animate, setAnimate] = useState(false);
 
   // 1. 애니메이션 효과
