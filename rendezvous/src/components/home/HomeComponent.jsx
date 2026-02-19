@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import HeaderComponent from "./HeaderComponent";
-import { Link, useNavigate } from "react-router-dom"; // useNavigate는 여기서는 안 쓰지만 Link 로직 변경
+import { Link, useNavigate } from "react-router-dom";
 import FooterComponent from "./FooterComponent";
 import { axiosApi } from "../../api/axiosAPI";
 
@@ -25,7 +25,7 @@ const HomeComponent = () => {
     e.preventDefault();
     console.log("문의 내용:", formData);
     try {
-      const resp = await axiosApi.post("/main/support", formData);
+      const resp = await axiosApi.post("/api/main/support", formData);
       if (resp.status === 200) {
         alert("문의가 접수되었습니다. 입력하신 이메일로 답변을 보내드릴게요!");
       } else {
